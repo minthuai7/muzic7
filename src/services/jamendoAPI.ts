@@ -40,7 +40,7 @@ class JamendoAPI {
   private clientId: string;
   private baseUrl: string = 'https://api.jamendo.com/v3.0';
 
-  constructor(clientId: string = 'your_client_id') {
+  constructor(clientId: string = 'c40e3496') {
     this.clientId = clientId;
   }
 
