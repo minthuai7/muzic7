@@ -87,36 +87,36 @@ export default function MusicLibrary({
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-3 md:p-6 space-y-6 md:space-y-8">
       {/* Genre Selection */}
       <GenreSelector onGenreSelect={onGenreSelect} selectedGenre={selectedGenre} />
 
       {/* Featured Playlists */}
       {playlists.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold text-white mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
             {selectedGenre && selectedGenre !== 'all' ? `${selectedGenre.charAt(0).toUpperCase() + selectedGenre.slice(1)} Albums` : 'Featured Albums & Playlists'}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {playlists.slice(0, 6).map((playlist) => (
               <div
                 key={playlist.id}
-                className="bg-white/5 rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer group"
+                className="bg-white/5 rounded-xl md:rounded-2xl p-3 md:p-6 hover:bg-white/10 transition-all cursor-pointer group"
               >
                 <img
                   src={playlist.imageUrl}
                   alt={playlist.name}
-                  className="w-full aspect-square rounded-xl object-cover mb-4"
+                  className="w-full aspect-square rounded-lg md:rounded-xl object-cover mb-2 md:mb-4"
                 />
-                <h3 className="text-white font-semibold text-lg mb-2 truncate">{playlist.name}</h3>
-                <p className="text-gray-400 text-sm mb-4 line-clamp-2">{playlist.description}</p>
+                <h3 className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2 truncate">{playlist.name}</h3>
+                <p className="text-gray-400 text-xs md:text-sm mb-2 md:mb-4 line-clamp-2 hidden md:block">{playlist.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500 text-sm">{playlist.tracks.length} tracks</span>
+                  <span className="text-gray-500 text-xs md:text-sm">{playlist.tracks.length} tracks</span>
                   <button 
                     onClick={() => playlist.tracks.length > 0 && onPlayTrack(playlist.tracks[0])}
-                    className="bg-green-600 hover:bg-green-500 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0"
+                    className="bg-green-600 hover:bg-green-500 text-white p-2 md:p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0"
                   >
-                    <Play className="w-4 h-4 ml-0.5" />
+                    <Play className="w-3 md:w-4 h-3 md:h-4 ml-0.5" />
                   </button>
                 </div>
               </div>
@@ -128,19 +128,19 @@ export default function MusicLibrary({
       {/* All Tracks */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-xl md:text-2xl font-bold text-white">
             {selectedGenre && selectedGenre !== 'all' 
               ? `${selectedGenre.charAt(0).toUpperCase() + selectedGenre.slice(1)} Music`
               : 'All Tracks'
             }
           </h2>
-          <span className="text-gray-400 text-sm">
+          <span className="text-gray-400 text-xs md:text-sm">
             {tracks.length} tracks available
           </span>
         </div>
         
         {tracks.length > 0 ? (
-          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+          <div className="bg-white/5 rounded-xl md:rounded-2xl p-3 md:p-6 border border-white/10">
             <div className="space-y-1">
               {tracks.map((track, index) => (
                 <TrackItem key={`${track.id}-${index}`} track={track} index={index} />
@@ -148,10 +148,10 @@ export default function MusicLibrary({
             </div>
             
             {tracks.length >= 20 && (
-              <div className="mt-6 text-center">
+              <div className="mt-4 md:mt-6 text-center">
                 <button
                   onClick={onLoadMore}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center space-x-2 mx-auto"
+                  className="px-4 md:px-6 py-2 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center space-x-2 mx-auto text-sm md:text-base"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Load More Tracks</span>
@@ -160,9 +160,9 @@ export default function MusicLibrary({
             )}
           </div>
         ) : (
-          <div className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center">
-            <p className="text-gray-400 text-lg mb-4">No tracks found</p>
-            <p className="text-gray-500 text-sm">
+          <div className="bg-white/5 rounded-xl md:rounded-2xl p-6 md:p-12 border border-white/10 text-center">
+            <p className="text-gray-400 text-base md:text-lg mb-4">No tracks found</p>
+            <p className="text-gray-500 text-xs md:text-sm">
               {selectedGenre && selectedGenre !== 'all' 
                 ? `Try selecting a different genre or search for specific tracks.`
                 : 'Try searching for music or generate some AI tracks.'

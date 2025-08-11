@@ -20,22 +20,22 @@ export default function GenreSelector({ onGenreSelect, selectedGenre }: GenreSel
 
   return (
     <div className="mb-8">
-      <h3 className="text-xl font-semibold text-white mb-4">Browse by Genre</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Browse by Genre</h3>
+      <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2 md:gap-3">
         {genres.map((genre) => (
           <button
             key={genre.id}
             onClick={() => onGenreSelect(genre.id)}
-            className={`group relative overflow-hidden rounded-xl p-4 transition-all duration-300 hover:scale-105 ${
+            className={`group relative overflow-hidden rounded-lg md:rounded-xl p-2 md:p-4 transition-all duration-300 hover:scale-105 ${
               selectedGenre === genre.id
                 ? 'ring-2 ring-white/50 scale-105'
                 : ''
             }`}
           >
             <div className={`absolute inset-0 bg-gradient-to-br ${genre.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
-            <div className="relative z-10 flex flex-col items-center space-y-2">
-              <genre.icon className="w-6 h-6 text-white" />
-              <span className="text-white text-sm font-medium text-center">
+            <div className="relative z-10 flex flex-col items-center space-y-1 md:space-y-2">
+              <genre.icon className="w-4 md:w-6 h-4 md:h-6 text-white" />
+              <span className="text-white text-xs md:text-sm font-medium text-center leading-tight">
                 {genre.name}
               </span>
             </div>
