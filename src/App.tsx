@@ -22,9 +22,12 @@ function App() {
     playlists: jamendoPlaylists,
     loading,
     error,
+    hasMore,
     searchMusic,
     getTracksByGenre,
-    loadMoreTracks
+    loadMoreTracks,
+    refreshMusic,
+    getRandomTracks
   } = useJamendoMusic();
 
   const {
@@ -63,6 +66,13 @@ function App() {
     }
   };
 
+  const handleShuffle = async () => {
+    const randomTracks = await getRandomTracks(50);
+    if (randomTracks.length > 0) {
+      const randomIndex = Math.floor(Math.random() * randomTracks.length);
+      playTrack(randomTracks[randomIndex]);
+    }
+  };
   // Combine all tracks based on current view and filters
   const getAllTracks = () => {
     const allTracks = [...generatedTracks, ...jamendoTracks];
@@ -109,7 +119,7 @@ function App() {
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <p className="text-red-400 text-lg">Error loading music: {error}</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={refreshMusic}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
             Retry
@@ -139,6 +149,10 @@ function App() {
             onGenreSelect={handleGenreSelect}
             selectedGenre={selectedGenre}
             onLoadMore={loadMoreTracks}
+            hasMore={hasMore}
+            loading={loading}
+            onRefresh={refreshMusic}
+            onShuffle={handleShuffle}
           />
         );
     }

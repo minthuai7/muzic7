@@ -39,11 +39,28 @@ interface JamendoResponse<T> {
 class JamendoAPI {
   private clientId: string;
   private baseUrl: string = 'https://api.jamendo.com/v3.0';
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes
 
   constructor(clientId: string = 'c40e3496') {
     this.clientId = clientId;
   }
 
+  private getCacheKey(endpoint: string, params: URLSearchParams): string {
+    return `${endpoint}?${params.toString()}`;
+  }
+
+  private getFromCache(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  private setCache(key: string, data: any): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
   async getTracks(options: {
     limit?: number;
     offset?: number;
@@ -51,51 +68,69 @@ class JamendoAPI {
     tags?: string;
     search?: string;
     featured?: string;
+    include?: string;
+    audiodlformat?: string;
   } = {}): Promise<JamendoTrack[]> {
     const params = new URLSearchParams({
       client_id: this.clientId,
       format: 'json',
-      limit: (options.limit || 20).toString(),
+      limit: Math.min(options.limit || 20, 200).toString(), // Jamendo max is 200
       offset: (options.offset || 0).toString(),
       order: options.order || 'popularity_total',
-      include: 'musicinfo',
-      audiodlformat: 'mp32',
+      include: options.include || 'musicinfo',
+      audiodlformat: options.audiodlformat || 'mp32',
       ...((options.tags && { tags: options.tags }) || {}),
       ...((options.search && { search: options.search }) || {}),
       ...((options.featured && { featured: options.featured }) || {}),
     });
 
+    const cacheKey = this.getCacheKey('tracks', params);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/tracks/?${params}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data: JamendoResponse<JamendoTrack> = await response.json();
-      return data.results || [];
+      const results = data.results || [];
+      this.setCache(cacheKey, results);
+      return results;
     } catch (error) {
       console.error('Error fetching tracks:', error);
       return [];
     }
   }
 
-  async getPopularTracks(limit: number = 20): Promise<JamendoTrack[]> {
+  async getPopularTracks(limit: number = 50): Promise<JamendoTrack[]> {
     return this.getTracks({
       limit,
       order: 'popularity_total',
-      featured: 'featured'
+      featured: 'featured',
+      include: 'musicinfo+stats'
     });
   }
 
-  async searchTracks(query: string, limit: number = 20): Promise<JamendoTrack[]> {
+  async searchTracks(query: string, limit: number = 50): Promise<JamendoTrack[]> {
+    if (!query.trim()) return [];
+    
     return this.getTracks({
-      search: query,
+      search: query.trim(),
       limit,
-      order: 'relevance'
+      order: 'relevance',
+      include: 'musicinfo'
     });
   }
 
-  async getTracksByGenre(genre: string, limit: number = 20): Promise<JamendoTrack[]> {
+  async getTracksByGenre(genre: string, limit: number = 50): Promise<JamendoTrack[]> {
     return this.getTracks({
       tags: genre,
       limit,
-      order: 'popularity_total'
+      order: 'popularity_total',
+      include: 'musicinfo'
     });
   }
 
@@ -104,36 +139,75 @@ class JamendoAPI {
     offset?: number;
     order?: string;
     search?: string;
+    include?: string;
   } = {}): Promise<JamendoAlbum[]> {
     const params = new URLSearchParams({
       client_id: this.clientId,
       format: 'json',
-      limit: (options.limit || 20).toString(),
+      limit: Math.min(options.limit || 20, 200).toString(),
       offset: (options.offset || 0).toString(),
       order: options.order || 'popularity_total',
-      include: 'musicinfo',
+      include: options.include || 'musicinfo',
       ...((options.search && { search: options.search }) || {}),
     });
 
+    const cacheKey = this.getCacheKey('albums', params);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/albums/?${params}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data: JamendoResponse<JamendoAlbum> = await response.json();
-      return data.results || [];
+      const results = data.results || [];
+      this.setCache(cacheKey, results);
+      return results;
     } catch (error) {
       console.error('Error fetching albums:', error);
       return [];
     }
   }
 
+  async getTracksByIds(trackIds: string[]): Promise<JamendoTrack[]> {
+    if (trackIds.length === 0) return [];
+    
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      format: 'json',
+      id: trackIds.join('+'),
+      include: 'musicinfo',
+      audiodlformat: 'mp32'
+    });
+
+    try {
+      const response = await fetch(`${this.baseUrl}/tracks/?${params}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: JamendoResponse<JamendoTrack> = await response.json();
+      return data.results || [];
+    } catch (error) {
+      console.error('Error fetching tracks by IDs:', error);
+      return [];
+    }
+  }
   // Convert Jamendo track to our Track interface
   convertToTrack(jamendoTrack: JamendoTrack): import('../types/music').Track {
+    // Ensure we have valid audio URL
+    const audioUrl = jamendoTrack.audio || jamendoTrack.audiodownload || '';
+    const imageUrl = jamendoTrack.album_image || 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800';
+    
     return {
       id: jamendoTrack.id,
       title: jamendoTrack.name,
       artist: jamendoTrack.artist_name,
       duration: jamendoTrack.duration,
-      audioUrl: jamendoTrack.audio,
-      imageUrl: jamendoTrack.album_image || 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800',
+      audioUrl,
+      imageUrl,
       tags: `${jamendoTrack.album_name}`,
       isGenerated: false
     };
@@ -149,6 +223,11 @@ class JamendoAPI {
       imageUrl: jamendoAlbum.image || 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800',
       createdAt: new Date(jamendoAlbum.releasedate)
     };
+  }
+
+  // Clear cache manually if needed
+  clearCache(): void {
+    this.cache.clear();
   }
 }
 

@@ -15,13 +15,17 @@ export default function GenreSelector({ onGenreSelect, selectedGenre }: GenreSel
     { id: 'classical', name: 'Classical', icon: Music2, color: 'from-green-500 to-emerald-500' },
     { id: 'ambient', name: 'Ambient', icon: Radio, color: 'from-indigo-500 to-purple-500' },
     { id: 'folk', name: 'Folk', icon: Music2, color: 'from-teal-500 to-green-500' },
-    { id: 'world', name: 'World', icon: Disc3, color: 'from-pink-500 to-rose-500' }
+    { id: 'world', name: 'World', icon: Disc3, color: 'from-pink-500 to-rose-500' },
+    { id: 'pop', name: 'Pop', icon: Music2, color: 'from-orange-500 to-red-500' },
+    { id: 'hiphop', name: 'Hip Hop', icon: Radio, color: 'from-gray-500 to-slate-500' },
+    { id: 'reggae', name: 'Reggae', icon: Disc3, color: 'from-lime-500 to-green-500' },
+    { id: 'blues', name: 'Blues', icon: Headphones, color: 'from-blue-600 to-indigo-600' }
   ];
 
   return (
     <div className="mb-8">
       <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Browse by Genre</h3>
-      <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2 md:gap-3">
+      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 md:gap-3">
         {genres.map((genre) => (
           <button
             key={genre.id}

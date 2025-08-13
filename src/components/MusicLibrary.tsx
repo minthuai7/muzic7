@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Heart, MoreHorizontal, Plus } from 'lucide-react';
+import { Play, Heart, MoreHorizontal, Plus, Shuffle, RefreshCw } from 'lucide-react';
 import { Track, Playlist } from '../types/music';
 import { formatTime } from '../utils/formatTime';
 import GenreSelector from './GenreSelector';
@@ -13,6 +13,10 @@ interface MusicLibraryProps {
   onGenreSelect: (genre: string) => void;
   selectedGenre: string | null;
   onLoadMore: () => void;
+  hasMore?: boolean;
+  loading?: boolean;
+  onRefresh?: () => void;
+  onShuffle?: () => void;
 }
 
 export default function MusicLibrary({ 
@@ -23,7 +27,11 @@ export default function MusicLibrary({
   isPlaying,
   onGenreSelect,
   selectedGenre,
-  onLoadMore
+  onLoadMore,
+  hasMore = true,
+  loading = false,
+  onRefresh,
+  onShuffle
 }: MusicLibraryProps) {
   const TrackItem = ({ track, index }: { track: Track; index: number }) => {
     const isCurrentTrack = currentTrack?.id === track.id;
@@ -56,6 +64,10 @@ export default function MusicLibrary({
             src={track.imageUrl}
             alt={track.title}
             className="w-12 h-12 rounded-lg object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800';
+            }}
           />
 
           <div className="flex-1 min-w-0">
@@ -68,6 +80,9 @@ export default function MusicLibrary({
               )}
             </h4>
             <p className="text-gray-400 text-sm truncate">{track.artist}</p>
+            {track.tags && (
+              <p className="text-gray-500 text-xs truncate">{track.tags}</p>
+            )}
           </div>
         </div>
 
@@ -107,6 +122,10 @@ export default function MusicLibrary({
                   src={playlist.imageUrl}
                   alt={playlist.name}
                   className="w-full aspect-square rounded-lg md:rounded-xl object-cover mb-2 md:mb-4"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800';
+                  }}
                 />
                 <h3 className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2 truncate">{playlist.name}</h3>
                 <p className="text-gray-400 text-xs md:text-sm mb-2 md:mb-4 line-clamp-2 hidden md:block">{playlist.description}</p>
@@ -134,9 +153,32 @@ export default function MusicLibrary({
               : 'All Tracks'
             }
           </h2>
-          <span className="text-gray-400 text-xs md:text-sm">
-            {tracks.length} tracks available
-          </span>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-400 text-xs md:text-sm">
+              {tracks.length} tracks available
+            </span>
+            <div className="flex items-center space-x-2">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+                  title="Refresh music"
+                >
+                  <RefreshCw className={`w-4 h-4 text-white ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              )}
+              {onShuffle && tracks.length > 0 && (
+                <button
+                  onClick={onShuffle}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                  title="Shuffle play"
+                >
+                  <Shuffle className="w-4 h-4 text-white" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
         
         {tracks.length > 0 ? (
@@ -147,21 +189,33 @@ export default function MusicLibrary({
               ))}
             </div>
             
-            {tracks.length >= 20 && (
+            {hasMore && (
               <div className="mt-4 md:mt-6 text-center">
                 <button
                   onClick={onLoadMore}
-                  className="px-4 md:px-6 py-2 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center space-x-2 mx-auto text-sm md:text-base"
+                  disabled={loading}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center space-x-2 mx-auto text-sm md:text-base disabled:opacity-50"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Load More Tracks</span>
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Load More Tracks</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </div>
         ) : (
           <div className="bg-white/5 rounded-xl md:rounded-2xl p-6 md:p-12 border border-white/10 text-center">
-            <p className="text-gray-400 text-base md:text-lg mb-4">No tracks found</p>
+            <p className="text-gray-400 text-base md:text-lg mb-4">
+              {loading ? 'Loading tracks...' : 'No tracks found'}
+            </p>
             <p className="text-gray-500 text-xs md:text-sm">
               {selectedGenre && selectedGenre !== 'all' 
                 ? `Try selecting a different genre or search for specific tracks.`

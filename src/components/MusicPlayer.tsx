@@ -33,7 +33,8 @@ export default function MusicPlayer({
     );
   }
 
-  const progress = (currentTime / currentTrack.duration) * 100;
+  const duration = currentTrack.duration || 0;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div className="bg-black/40 backdrop-blur-md border-t border-white/10 p-2 md:p-4">
@@ -44,6 +45,10 @@ export default function MusicPlayer({
             src={currentTrack.imageUrl}
             alt={currentTrack.title}
             className="w-12 md:w-16 h-12 md:h-16 rounded-lg object-cover flex-shrink-0"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800';
+            }}
           />
           <div className="min-w-0 flex-1">
             <h4 className="text-white font-medium text-sm md:text-base truncate">{currentTrack.title}</h4>
@@ -88,7 +93,7 @@ export default function MusicPlayer({
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const percentage = (e.clientX - rect.left) / rect.width;
-                onSeek(percentage * currentTrack.duration);
+                onSeek(percentage * duration);
               }}
             >
               <div
@@ -101,7 +106,7 @@ export default function MusicPlayer({
               />
             </div>
             <span className="text-xs text-gray-400 min-w-[30px] md:min-w-[40px] hidden md:block">
-              {formatTime(currentTrack.duration)}
+              {formatTime(duration)}
             </span>
           </div>
         </div>
