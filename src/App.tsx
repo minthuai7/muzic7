@@ -5,8 +5,10 @@ import MusicLibrary from './components/MusicLibrary';
 import MusicGenerator from './components/MusicGenerator';
 import MusicPlayer from './components/MusicPlayer';
 import LoadingSpinner from './components/LoadingSpinner';
+import ProtectedRoute from './components/ProtectedRoute';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useJamendoMusic } from './hooks/useJamendoMusic';
+import { useAuth } from './hooks/useAuth';
 import { Track } from './types/music';
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
   const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [genreTracks, setGenreTracks] = useState<Track[]>([]);
+  
+  const { user } = useAuth();
   
   const {
     tracks: jamendoTracks,
@@ -131,10 +135,30 @@ function App() {
     switch (currentView) {
       case 'generator':
         return (
-          <MusicGenerator
-            onTrackGenerated={handleTrackGenerated}
-            onPlayTrack={playTrack}
-          />
+          <ProtectedRoute requireAuth={true}>
+            <MusicGenerator
+              onTrackGenerated={handleTrackGenerated}
+              onPlayTrack={playTrack}
+            />
+          </ProtectedRoute>
+        );
+      case 'liked':
+        return (
+          <ProtectedRoute requireAuth={true}>
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <h3 className="text-2xl font-bold text-white">Liked Songs</h3>
+              <p className="text-gray-400">Your favorite tracks will appear here</p>
+            </div>
+          </ProtectedRoute>
+        );
+      case 'recent':
+        return (
+          <ProtectedRoute requireAuth={true}>
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <h3 className="text-2xl font-bold text-white">Recently Played</h3>
+              <p className="text-gray-400">Your listening history will appear here</p>
+            </div>
+          </ProtectedRoute>
         );
       case 'library':
       case 'home':
@@ -165,7 +189,11 @@ function App() {
       <Header onSearch={handleSearch} />
       
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+        <Sidebar 
+          currentView={currentView} 
+          onViewChange={setCurrentView}
+          user={user}
+        />
         
         <main className="flex-1 overflow-auto">
           {renderContent()}
