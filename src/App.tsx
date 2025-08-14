@@ -4,10 +4,13 @@ import Sidebar from './components/Sidebar';
 import MusicLibrary from './components/MusicLibrary';
 import MusicGenerator from './components/MusicGenerator';
 import MusicPlayer from './components/MusicPlayer';
+import MyMusicLibrary from './components/MyMusicLibrary';
+import PublicMusicFeed from './components/PublicMusicFeed';
 import LoadingSpinner from './components/LoadingSpinner';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useJamendoMusic } from './hooks/useJamendoMusic';
+import { useSavedTracks } from './hooks/useSavedTracks';
 import { useAuth } from './hooks/useAuth';
 import { Track } from './types/music';
 
@@ -20,6 +23,7 @@ function App() {
   const [genreTracks, setGenreTracks] = useState<Track[]>([]);
   
   const { user } = useAuth();
+  const { savedTracks } = useSavedTracks();
   
   const {
     tracks: jamendoTracks,
@@ -142,6 +146,18 @@ function App() {
             />
           </ProtectedRoute>
         );
+      case 'mymusic':
+        return (
+          <ProtectedRoute requireAuth={true}>
+            <MyMusicLibrary
+              onPlayTrack={playTrack}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+            />
+          </ProtectedRoute>
+        );
+      case 'public':
+        return <PublicMusicFeed onPlayTrack={playTrack} currentTrack={currentTrack} isPlaying={isPlaying} />;
       case 'liked':
         return (
           <ProtectedRoute requireAuth={true}>
