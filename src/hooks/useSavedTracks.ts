@@ -58,7 +58,7 @@ export function useSavedTracks() {
           user_id: user.id,
           title: track.title,
           artist: track.artist,
-          duration: track.duration,
+          duration: Math.floor(track.duration),
           audio_url: track.audioUrl,
           image_url: track.imageUrl,
           tags: track.tags,
