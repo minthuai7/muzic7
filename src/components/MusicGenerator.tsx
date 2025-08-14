@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Music, Download, Play, Loader2 } from 'lucide-react';
+import { Sparkles, Wand2, Music, Download, Play, Loader2, Save } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
 import SunoAPI from '../services/kieAI';
+import SaveTrackModal from './SaveTrackModal';
+import { useSavedTracks } from '../hooks/useSavedTracks';
 
 interface MusicGeneratorProps {
   onTrackGenerated: (track: Track) => void;
@@ -22,6 +24,9 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   const [apiKeys, setApiKeys] = useState('');
   const [showUsageStats, setShowUsageStats] = useState(false);
   const [usageStats, setUsageStats] = useState<any[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [trackToSave, setTrackToSave] = useState<Track | null>(null);
+  const { saveTrack } = useSavedTracks();
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !apiKeys.trim()) {
@@ -68,6 +73,16 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       console.error('Generation failed:', error);
       setIsGenerating(false);
     }
+  };
+
+  const handleSaveTrack = (track: Track) => {
+    setTrackToSave(track);
+    setShowSaveModal(true);
+  };
+
+  const handleSaveConfirm = async (track: Track, isPublic: boolean) => {
+    const success = await saveTrack(track, isPublic);
+    return success;
   };
 
   const styles = [
@@ -273,12 +288,25 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors hidden md:block">
                     <Download className="w-4 h-4 text-white" />
                   </button>
+                  <button
+                    onClick={() => handleSaveTrack(track)}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                  >
+                    <Save className="w-4 h-4 text-white" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      <SaveTrackModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        track={trackToSave}
+        onSave={handleSaveConfirm}
+      />
     </div>
   );
 }

@@ -9,6 +9,11 @@ export interface Track {
   isGenerated?: boolean;
   taskId?: string;
   prompt?: string;
+  isSaved?: boolean;
+  isPublic?: boolean;
+  playCount?: number;
+  userId?: string;
+  createdAt?: Date;
 }
 
 export interface Playlist {
@@ -62,4 +67,32 @@ export interface KieAIResponse {
       }>;
     };
   };
+}
+
+export interface SavedTrack {
+  id: string;
+  user_id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  audio_url: string;
+  image_url: string;
+  tags?: string;
+  prompt?: string;
+  task_id?: string;
+  is_public: boolean;
+  is_generated: boolean;
+  play_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  created_at: string;
+  updated_at: string;
 }
