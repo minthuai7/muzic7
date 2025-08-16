@@ -203,10 +203,20 @@ export default function MyMusicLibrary({ onPlayTrack, currentTrack, isPlaying }:
             Your saved music will appear here.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all">
+            <button 
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('navigate-to-generator'));
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
+            >
               Generate AI Music
             </button>
-            <button className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('navigate-to-library'));
+              }}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+            >
               Browse Library
             </button>
           </div>

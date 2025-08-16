@@ -159,7 +159,13 @@ export default function PublicMusicFeed({ onPlayTrack, currentTrack, isPlaying }
             Be the first to share your AI-generated music with the community! 
             Generate some tracks and make them public.
           </p>
-          <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all">
+          <button 
+            onClick={() => {
+              // Navigate to AI Generator
+              window.dispatchEvent(new CustomEvent('navigate-to-generator'));
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
+          >
             Create & Share Music
           </button>
         </div>
