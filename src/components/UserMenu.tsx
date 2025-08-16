@@ -1,14 +1,34 @@
 import React, { useState } from 'react';
 import { User, LogOut, Settings, Music } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import ProfileModal from './ProfileModal';
+import SettingsModal from './SettingsModal';
 
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
     setIsOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    setIsOpen(false);
+    setShowProfile(true);
+  };
+
+  const handleSettingsClick = () => {
+    setIsOpen(false);
+    setShowSettings(true);
+  };
+
+  const handleMyMusicClick = () => {
+    setIsOpen(false);
+    // This will be handled by the parent component
+    window.dispatchEvent(new CustomEvent('navigate-to-mymusic'));
   };
 
   if (!user) return null;
@@ -46,15 +66,24 @@ export default function UserMenu() {
             </div>
 
             <div className="p-2">
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <button 
+                onClick={handleProfileClick}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
                 <User className="w-4 h-4" />
                 <span className="text-sm">Profile</span>
               </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <button 
+                onClick={handleMyMusicClick}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
                 <Music className="w-4 h-4" />
                 <span className="text-sm">My Music</span>
               </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <button 
+                onClick={handleSettingsClick}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
                 <Settings className="w-4 h-4" />
                 <span className="text-sm">Settings</span>
               </button>
@@ -72,6 +101,16 @@ export default function UserMenu() {
           </div>
         </>
       )}
+
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }
