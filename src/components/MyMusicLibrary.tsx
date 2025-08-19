@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Play, Heart, MoreHorizontal, Globe, Lock, Trash2, Edit3, Eye, Music } from 'lucide-react';
+import { Play, Heart, MoreHorizontal, Globe, Lock, Trash2, Edit3, Eye, Music, Crown, Calendar, TrendingUp } from 'lucide-react';
 import { Track } from '../types/music';
 import { formatTime } from '../utils/formatTime';
 import { useSavedTracks } from '../hooks/useSavedTracks';
+import { useUserUsage } from '../hooks/useUserUsage';
 
 interface MyMusicLibraryProps {
   onPlayTrack: (track: Track) => void;
@@ -12,6 +13,7 @@ interface MyMusicLibraryProps {
 
 export default function MyMusicLibrary({ onPlayTrack, currentTrack, isPlaying }: MyMusicLibraryProps) {
   const { savedTracks, loading, updateTrackVisibility, deleteTrack } = useSavedTracks();
+  const { usage } = useUserUsage();
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [showMenu, setShowMenu] = useState<string | null>(null);
 
@@ -173,52 +175,143 @@ export default function MyMusicLibrary({ onPlayTrack, currentTrack, isPlaying }:
 
   return (
     <div className="p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-2">My Music</h2>
-          <p className="text-gray-400">Your saved and generated tracks</p>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-2xl p-6 border border-purple-500/30">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-2 flex items-center">
+              <Music className="w-8 h-8 mr-3 text-purple-400" />
+              My Music Library
+            </h2>
+            <p className="text-gray-400">Your personal collection of saved and generated tracks</p>
+          </div>
+          {usage && (
+            <div className="text-right">
+              <div className="flex items-center space-x-2 mb-2">
+                <Crown className={`w-5 h-5 ${usage.planType === 'premium' ? 'text-yellow-400' : 'text-gray-400'}`} />
+                <span className="text-white font-semibold capitalize">{usage.planType}</span>
+              </div>
+              <p className="text-gray-400 text-sm">{usage.remaining} generations left</p>
+            </div>
+          )}
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-white">{savedTracks.length}</p>
-          <p className="text-gray-400 text-sm">Saved Tracks</p>
+        
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/10 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{savedTracks.length}</p>
+            <p className="text-gray-400 text-sm">Total Tracks</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{savedTracks.filter(t => t.isGenerated).length}</p>
+            <p className="text-gray-400 text-sm">AI Generated</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{savedTracks.filter(t => t.isPublic).length}</p>
+            <p className="text-gray-400 text-sm">Public</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{savedTracks.reduce((sum, t) => sum + (t.playCount || 0), 0)}</p>
+            <p className="text-gray-400 text-sm">Total Plays</p>
+          </div>
         </div>
       </div>
 
       {savedTracks.length > 0 ? (
-        <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-          <div className="space-y-1">
+        <div className="space-y-6">
+          {/* Filter/Sort Options */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium">
+                All Tracks
+              </button>
+              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-lg text-sm transition-colors">
+                AI Generated
+              </button>
+              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-lg text-sm transition-colors">
+                Public
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Sort by:</span>
+              <select className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="newest" className="bg-gray-800">Newest First</option>
+                <option value="oldest" className="bg-gray-800">Oldest First</option>
+                <option value="plays" className="bg-gray-800">Most Played</option>
+                <option value="title" className="bg-gray-800">Title A-Z</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Tracks List */}
+          <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2" />
+                Your Tracks
+              </h3>
+            </div>
+            <div className="divide-y divide-white/10">
             {savedTracks.map((track, index) => (
               <TrackItem key={track.id} track={track} index={index} />
             ))}
           </div>
+          </div>
         </div>
       ) : (
-        <div className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+        <div className="bg-white/5 rounded-2xl p-12 border border-white/10 text-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-600" />
+            <div className="absolute inset-0" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }} />
+          </div>
+          
+          <div className="relative z-10">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-8 rounded-full w-32 h-32 mx-auto mb-8 flex items-center justify-center shadow-2xl">
             <Music className="w-12 h-12 text-white" />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-4">No Saved Music Yet</h3>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto">
-            Start by generating some AI music or saving tracks from your library. 
-            Your saved music will appear here.
+            <h3 className="text-3xl font-bold text-white mb-4">Your Music Library is Empty</h3>
+            <p className="text-gray-400 mb-8 max-w-lg mx-auto text-lg">
+              Start building your personal music collection! Generate AI music or save tracks from the library to see them here.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            
+            {usage && (
+              <div className="bg-white/10 rounded-xl p-4 mb-8 max-w-md mx-auto">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <Crown className={`w-4 h-4 ${usage.planType === 'premium' ? 'text-yellow-400' : 'text-gray-400'}`} />
+                  <span className="text-white font-medium">
+                    {usage.remaining} {usage.planType === 'premium' ? 'premium' : 'free'} generations remaining
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
+                    style={{ width: `${((usage.limit - usage.remaining) / usage.limit) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('navigate-to-generator'));
               }}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
+                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
             >
-              Generate AI Music
+                🎵 Generate AI Music
             </button>
             <button 
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('navigate-to-library'));
               }}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20 hover:border-white/40 font-medium"
             >
-              Browse Library
+                📚 Browse Music Library
             </button>
+          </div>
           </div>
         </div>
       )}

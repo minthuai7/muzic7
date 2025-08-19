@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useJamendoMusic } from './hooks/useJamendoMusic';
 import { useSavedTracks } from './hooks/useSavedTracks';
+import { useUserUsage } from './hooks/useUserUsage';
 import { useAuth } from './hooks/useAuth';
 import { Track } from './types/music';
 
@@ -24,6 +25,7 @@ function App() {
   
   const { user } = useAuth();
   const { savedTracks } = useSavedTracks();
+  const { usage } = useUserUsage();
   
   const {
     tracks: jamendoTracks,
