@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart } from 'lucide-react';
+import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
 import SunoAPI from '../services/kieAI';
 import SaveTrackModal from './SaveTrackModal';
@@ -21,12 +21,31 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<Track[]>([]);
-  const [apiKeys, setApiKeys] = useState('');
+  const [apiKeys, setApiKeys] = useState(() => {
+    // Load saved API keys from localStorage on component mount
+    return localStorage.getItem('musicai_api_keys') || '';
+  });
   const [showUsageStats, setShowUsageStats] = useState(false);
   const [usageStats, setUsageStats] = useState<any[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [trackToSave, setTrackToSave] = useState<Track | null>(null);
   const { saveTrack } = useSavedTracks();
+
+  // Save API keys to localStorage
+  const handleSaveApiKeys = () => {
+    localStorage.setItem('musicai_api_keys', apiKeys);
+    alert('Music AI API keys saved successfully!');
+  };
+
+  // Reset API keys
+  const handleResetApiKeys = () => {
+    if (confirm('Are you sure you want to reset all API keys? This action cannot be undone.')) {
+      setApiKeys('');
+      localStorage.removeItem('musicai_api_keys');
+      setUsageStats([]);
+      alert('Music AI API keys have been reset.');
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !apiKeys.trim()) {
@@ -106,7 +125,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       <div className="bg-white/5 rounded-2xl p-4 md:p-6 border border-white/10">
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-300">
-            Kie AI API Keys
+            Music AI API Keys
           </label>
           {usageStats.length > 0 && (
             <button
@@ -123,17 +142,34 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
           placeholder="Enter your Music AI keys (Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်)"
           className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-20"
         />
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between mt-3">
           <p className="text-xs text-gray-500">
             💡 Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်
           </p>
-          <button
-            onClick={() => window.open('https://m.me/infinitytechmyanmar', '_blank')}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            <span>Buy Music AI Key</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSaveApiKeys}
+              disabled={!apiKeys.trim()}
+              className="px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save</span>
+            </button>
+            <button
+              onClick={handleResetApiKeys}
+              className="px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Reset</span>
+            </button>
+            <button
+              onClick={() => window.open('https://m.me/infinitytechmyanmar', '_blank')}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Buy Music AI Key</span>
+            </button>
+          </div>
         </div>
         
         {/* Usage Stats */}
@@ -147,7 +183,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   <div className="flex items-center space-x-2">
                     <div className="w-16 bg-gray-700 rounded-full h-1">
                       <div 
-                        className="bg-purple-500 h-1 rounded-full transition-all"
+                        className="bg-green-500 h-1 rounded-full transition-all"
                         style={{ width: `${(stat.usage / stat.maxUsage) * 100}%` }}
                       />
                     </div>
