@@ -1,5 +1,17 @@
-import React, { useState } from 'react';
-import { X, Settings, Volume2, Bell, Shield, Palette, Download, Trash2, Crown, CreditCard, Zap } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  X,
+  Settings,
+  Volume2,
+  Bell,
+  Shield,
+  Palette,
+  Download,
+  Trash2,
+  Crown,
+  CreditCard,
+  Zap
+} from 'lucide-react';
 import { useUserUsage } from '../hooks/useUserUsage';
 
 interface SettingsModalProps {
@@ -19,27 +31,54 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     downloadQuality: 'high'
   });
 
-  const handleSettingChange = (key: string, value: any) => {
+  // Load saved settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = Object.keys(settings).reduce((acc, key) => {
+      const savedValue = localStorage.getItem(`setting_${key}`);
+      return { ...acc, [key]: savedValue ? JSON.parse(savedValue) : settings[key] };
+    }, {} as typeof settings);
+    setSettings(savedSettings);
+  }, []);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
+
+  // Handle setting changes and save to localStorage
+  const handleSettingChange = useCallback((key: string, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    // In a real app, you'd save this to localStorage or user preferences
     localStorage.setItem(`setting_${key}`, JSON.stringify(value));
-  };
+  }, []);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div className="bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-lg min-h-[50vh] max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center">
+          <h2 id="modal-title" className="text-2xl font-bold text-white flex items-center">
             <Settings className="w-6 h-6 mr-2" />
             App Settings
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            aria-label="Close modal"
+            className="p-3 hover:bg-white/10 rounded-full transition-colors"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-6 h-6 text-gray-400" />
           </button>
         </div>
 
@@ -52,7 +91,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 Subscription
               </h3>
               <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div>
                     <h4 className="text-white font-semibold capitalize flex items-center">
                       {usage.planType === 'premium' ? (
@@ -63,20 +102,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       {usage.planType} Plan
                     </h4>
                     <p className="text-gray-400 text-sm">
-                      {usage.planType === 'premium' 
-                        ? 'Unlimited AI music generation' 
-                        : 'Limited to 1 generation per month'
-                      }
+                      {usage.planType === 'premium'
+                        ? 'Unlimited AI music generation'
+                        : 'Limited to 1 generation per month'}
                     </p>
                   </div>
                   {usage.planType === 'free' && (
-                    <button className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center space-x-2">
+                    <button className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center space-x-2 mt-4 sm:mt-0">
                       <CreditCard className="w-4 h-4" />
                       <span>Upgrade</span>
                     </button>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="bg-white/10 rounded-lg p-3">
                     <p className="text-2xl font-bold text-white">{usage.current}</p>
@@ -91,14 +129,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <p className="text-gray-400 text-xs">Monthly Limit</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <div className="flex justify-between text-sm text-gray-400 mb-2">
                     <span>Usage Progress</span>
                     <span>{Math.round((usage.current / usage.limit) * 100)}%</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
                       style={{ width: `${Math.min((usage.current / usage.limit) * 100, 100)}%` }}
                     />
@@ -136,13 +174,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <span>100%</span>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-white font-medium">High Quality Audio</p>
                   <p className="text-gray-400 text-sm">Stream music in 320kbps quality</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer group">
+                <label className="relative inline-flex items-center cursor-pointer group mt-2 sm:mt-0">
                   <input
                     type="checkbox"
                     checked={settings.highQuality}
@@ -152,13 +189,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 group-hover:bg-gray-500"></div>
                 </label>
               </div>
-
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-white font-medium">Autoplay</p>
                   <p className="text-gray-400 text-sm">Continue playing similar tracks</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer group">
+                <label className="relative inline-flex items-center cursor-pointer group mt-2 sm:mt-0">
                   <input
                     type="checkbox"
                     checked={settings.autoplay}
@@ -178,12 +214,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               Notifications
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-white font-medium">Push Notifications</p>
                   <p className="text-gray-400 text-sm">Updates and new features</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer group">
+                <label className="relative inline-flex items-center cursor-pointer group mt-2 sm:mt-0">
                   <input
                     type="checkbox"
                     checked={settings.notifications}
@@ -203,12 +239,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               Appearance
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-white font-medium">Show Lyrics</p>
                   <p className="text-gray-400 text-sm">Show lyrics overlay during playback</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer group">
+                <label className="relative inline-flex items-center cursor-pointer group mt-2 sm:mt-0">
                   <input
                     type="checkbox"
                     checked={settings.showLyrics}
@@ -284,7 +320,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <span className="font-semibold text-white">AI Music Studio</span>
               </div>
               <p className="text-gray-500">Version 1.0.0</p>
-              <p className="text-gray-500">Built with ❤️ using React, Supabase & AI</p>
+              <p className="text-gray-500">Built with ❤️ in Myanmar</p>
               <div className="flex justify-center space-x-4 mt-4 text-xs">
                 <button className="text-purple-400 hover:text-purple-300 transition-colors">Privacy Policy</button>
                 <button className="text-purple-400 hover:text-purple-300 transition-colors">Terms of Service</button>
