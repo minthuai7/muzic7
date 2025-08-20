@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Music, Download, Play, Loader2, Save } from 'lucide-react';
+import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
 import SunoAPI from '../services/kieAI';
 import SaveTrackModal from './SaveTrackModal';
@@ -123,9 +123,18 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
           placeholder="Enter your Music AI keys (Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်)"
           className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-20"
         />
-        <p className="text-xs text-gray-500 mt-2">
-          💡 Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-gray-500">
+            💡 Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်
+          </p>
+          <button
+            onClick={() => window.open('https://m.me/infinitytechmyanmar', '_blank')}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>Buy Music AI Key</span>
+          </button>
+        </div>
         
         {/* Usage Stats */}
         {showUsageStats && usageStats.length > 0 && (
