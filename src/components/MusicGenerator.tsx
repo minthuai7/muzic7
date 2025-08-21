@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw } from 'lucide-react';
+import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw, CheckCircle } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
 import SunoAPI from '../services/kieAI';
 import SaveTrackModal from './SaveTrackModal';
@@ -34,11 +34,13 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [trackToSave, setTrackToSave] = useState<Track | null>(null);
   const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState('');
   const { saveTrack } = useSavedTracks();
 
   const handleSaveApiKeys = () => {
     localStorage.setItem('musicai_api_keys', apiKeys);
-    alert('Music AI API keys saved successfully!');
+    setSaveMessage('Music AI API keys saved successfully!');
+    setTimeout(() => setSaveMessage(''), 3000);
   };
 
   const handleResetApiKeys = () => {
@@ -46,20 +48,44 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       setApiKeys('');
       localStorage.removeItem('musicai_api_keys');
       setUsageStats([]);
-      alert('Music AI API keys have been reset.');
+      setSaveMessage('Music AI API keys have been reset.');
+      setTimeout(() => setSaveMessage(''), 3000);
     }
   };
 
-  const downloadAudio = (url: string, title: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title}.mp3`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadAudio = async (url: string, title: string) => {
+    try {
+      // Create a safe filename
+      const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      
+      // Fetch the audio file
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch audio');
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${safeTitle}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the object URL
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Download failed. Please try again.');
+    }
   };
 
   const handleDownload = async (url: string, title: string, trackId: string) => {
+    if (!url) {
+      alert('Audio URL not available for download');
+      return;
+    }
+    
     setDownloadingTrackId(trackId);
     try {
       await downloadAudio(url, title);
@@ -156,7 +182,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
         />
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs text-gray-500">
-            💡 Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်
+            💡 Get Music AI Keys from Infinity Tech Page
           </p>
           <div className="flex items-center space-x-2">
             <button
@@ -183,6 +209,14 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
             </button>
           </div>
         </div>
+
+        {/* Save Message */}
+        {saveMessage && (
+          <div className="mt-3 p-3 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            <p className="text-green-400 text-sm">{saveMessage}</p>
+          </div>
+        )}
 
         {/* Usage Stats */}
         {showUsageStats && usageStats.length > 0 && (
