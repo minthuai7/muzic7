@@ -10,6 +10,11 @@ interface MusicGeneratorProps {
   onPlayTrack: (track: Track) => void;
 }
 
+const styles = [
+  'Pop', 'Rock', 'Electronic', 'Hip-Hop', 'Jazz', 'Classical',
+  'Ambient', 'Folk', 'R&B', 'Country', 'Indie', 'Synthwave'
+];
+
 export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicGeneratorProps) {
   const [prompt, setPrompt] = useState('');
   const [options, setOptions] = useState<GenerationOptions>({
@@ -22,22 +27,20 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<Track[]>([]);
   const [apiKeys, setApiKeys] = useState(() => {
-    // Load saved API keys from localStorage on component mount
     return localStorage.getItem('musicai_api_keys') || '';
   });
   const [showUsageStats, setShowUsageStats] = useState(false);
   const [usageStats, setUsageStats] = useState<any[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [trackToSave, setTrackToSave] = useState<Track | null>(null);
+  const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
   const { saveTrack } = useSavedTracks();
 
-  // Save API keys to localStorage
   const handleSaveApiKeys = () => {
     localStorage.setItem('musicai_api_keys', apiKeys);
     alert('Music AI API keys saved successfully!');
   };
 
-  // Reset API keys
   const handleResetApiKeys = () => {
     if (confirm('Are you sure you want to reset all API keys? This action cannot be undone.')) {
       setApiKeys('');
@@ -47,20 +50,35 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
     }
   };
 
+  const downloadAudio = (url: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownload = async (url: string, title: string, trackId: string) => {
+    setDownloadingTrackId(trackId);
+    try {
+      await downloadAudio(url, title);
+    } finally {
+      setDownloadingTrackId(null);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || !apiKeys.trim()) {
       alert('Please enter both a prompt and API key(s)');
       return;
     }
-
     setIsGenerating(true);
     try {
-      // Parse multiple API keys (comma or newline separated)
       const keyArray = apiKeys.split(/[,\n]/).map(key => key.trim()).filter(key => key.length > 0);
       const api = new SunoAPI(keyArray);
       const taskId = await api.generateMusic(prompt, options);
-      
-      // Simulate waiting for completion (in a real app, you'd poll the status)
+
       setTimeout(async () => {
         try {
           const result = await api.waitForCompletion(taskId);
@@ -76,18 +94,16 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
             taskId,
             prompt
           }));
-          
+
           setGeneratedTracks(prev => [...prev, ...tracks]);
           tracks.forEach(track => onTrackGenerated(track));
-          
-          // Update usage stats
           setUsageStats(api.getUsageStats());
           setIsGenerating(false);
         } catch (error) {
           console.error('Generation failed:', error);
           setIsGenerating(false);
         }
-      }, 5000); // Simulate 5 second generation time
+      }, 5000);
     } catch (error) {
       console.error('Generation failed:', error);
       setIsGenerating(false);
@@ -104,13 +120,9 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
     return success;
   };
 
-  const styles = [
-    'Pop', 'Rock', 'Electronic', 'Hip-Hop', 'Jazz', 'Classical',
-    'Ambient', 'Folk', 'R&B', 'Country', 'Indie', 'Synthwave'
-  ];
-
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 rounded-full">
@@ -171,7 +183,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
             </button>
           </div>
         </div>
-        
+
         {/* Usage Stats */}
         {showUsageStats && usageStats.length > 0 && (
           <div className="mt-4 p-3 bg-white/5 rounded-lg">
@@ -182,7 +194,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   <span className="text-gray-400">{stat.key}</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-16 bg-gray-700 rounded-full h-1">
-                      <div 
+                      <div
                         className="bg-green-500 h-1 rounded-full transition-all"
                         style={{ width: `${(stat.usage / stat.maxUsage) * 100}%` }}
                       />
@@ -212,7 +224,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
               className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-24"
             />
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -226,7 +237,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                 className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Style
@@ -240,7 +250,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
               />
             </div>
           </div>
-
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-xs md:text-sm text-gray-400">Quick styles:</span>
             {styles.map(style => (
@@ -253,7 +262,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
               </button>
             ))}
           </div>
-
           <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-6">
             <label className="flex items-center space-x-2">
               <input
@@ -264,7 +272,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
               />
               <span className="text-gray-300">Instrumental only</span>
             </label>
-
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -275,7 +282,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
               <span className="text-gray-300">Custom mode</span>
             </label>
           </div>
-
           <button
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim() || !apiKeys.trim()}
@@ -330,8 +336,16 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   >
                     <Play className="w-4 h-4 text-white" />
                   </button>
-                  <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors hidden md:block">
-                    <Download className="w-4 h-4 text-white" />
+                  <button
+                    onClick={() => handleDownload(track.audioUrl, track.title, track.id)}
+                    disabled={downloadingTrackId === track.id}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    {downloadingTrackId === track.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 text-white" />
+                    )}
                   </button>
                   <button
                     onClick={() => handleSaveTrack(track)}
