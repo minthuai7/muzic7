@@ -24,39 +24,62 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
   };
   const handleSave = async () => {
     if (!track) {
-      setError('No track selected to save');
+      const errorMsg = 'No track selected to save';
+      console.error(errorMsg);
+      setError(errorMsg);
       return;
     }
 
     // Validate track data before saving
     if (!track.title?.trim()) {
-      setError('Track must have a title to be saved');
+      const errorMsg = 'Track must have a title to be saved';
+      console.error(errorMsg, 'Track title:', track.title);
+      setError(errorMsg);
       return;
     }
 
     if (!track.audioUrl) {
-      setError('Track must have an audio URL to be saved');
+      const errorMsg = 'Track must have an audio URL to be saved';
+      console.error(errorMsg, 'Track audioUrl:', track.audioUrl);
+      setError(errorMsg);
       return;
     }
+
+    console.log('=== SAVE TRACK MODAL ===');
+    console.log('Track to save:', {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      audioUrl: track.audioUrl ? 'Present' : 'Missing',
+      isPublic: isPublic
+    });
 
     setLoading(true);
     setMessage('');
     setError('');
 
     try {
-      console.log('SaveTrackModal: Attempting to save track:', track.title);
       const success = await onSave(track, isPublic);
+      
+      console.log('Save result:', success);
+      
       if (success) {
-        setMessage('Track saved successfully!');
+        const successMsg = `Track saved successfully as ${isPublic ? 'public' : 'private'}!`;
+        console.log(successMsg);
+        setMessage(successMsg);
         setTimeout(() => {
           handleClose();
         }, 1500);
       } else {
-        setError('Failed to save track. Please try again.');
+        const errorMsg = 'Failed to save track. Please check the console for details.';
+        console.error(errorMsg);
+        setError(errorMsg);
       }
     } catch (error) {
-      console.error('SaveTrackModal: Save error:', error);
-      setError('An unexpected error occurred while saving');
+      console.error('=== SAVE TRACK MODAL ERROR ===');
+      console.error('Error:', error);
+      const errorMsg = `Unexpected error: ${error?.message || 'Unknown error'}`;
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

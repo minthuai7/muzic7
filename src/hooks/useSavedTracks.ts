@@ -44,58 +44,72 @@ export function useSavedTracks() {
 
   const saveTrack = async (track: Track, isPublic: boolean = false): Promise<boolean> => {
     if (!user) {
+      const errorMsg = 'You must be signed in to save tracks. Please sign in and try again.';
       console.error('Save track error: User not authenticated');
-      setError('You must be signed in to save tracks. Please sign in and try again.');
+      setError(errorMsg);
       return false;
     }
 
     try {
-      console.log('Attempting to save track:', { 
-        title: track.title, 
-        audioUrl: track.audioUrl?.substring(0, 50) + '...', 
-        isPublic 
-      });
-      
       setError(null);
       setLoading(true);
+      
+      console.log('=== SAVE TRACK DEBUG ===');
+      console.log('User ID:', user.id);
+      console.log('Track data:', {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        duration: track.duration,
+        audioUrl: track.audioUrl ? track.audioUrl.substring(0, 100) + '...' : 'NO URL',
+        imageUrl: track.imageUrl ? 'Present' : 'Missing',
+        isPublic: isPublic
+      });
 
       // Validate track data
       if (!track.title || !track.audioUrl) {
         const missingFields = [];
         if (!track.title) missingFields.push('title');
         if (!track.audioUrl) missingFields.push('audio URL');
-        setError(`Cannot save track: missing ${missingFields.join(' and ')}`);
-        console.error('Save track validation failed:', { title: track.title, audioUrl: !!track.audioUrl });
+        const errorMsg = `Cannot save track: missing ${missingFields.join(' and ')}`;
+        console.error('Validation failed:', errorMsg);
+        setError(errorMsg);
         return false;
       }
 
       // Validate audio URL format
       if (!track.audioUrl.startsWith('http')) {
-        setError('Invalid audio URL format');
+        const errorMsg = 'Invalid audio URL format - must start with http';
         console.error('Invalid audio URL:', track.audioUrl);
+        setError(errorMsg);
         return false;
       }
 
       // Check if track already exists
+      console.log('Checking for existing track...');
       const { data: existingTrack } = await supabase
         .from('saved_tracks')
         .select('id')
         .eq('user_id', user.id)
-        .eq('title', track.title)
-        .eq('audio_url', track.audioUrl);
+        .eq('title', track.title.trim())
+        .eq('audio_url', track.audioUrl)
+        .maybeSingle();
 
-      if (existingTrack && existingTrack.length > 0) {
-        setError('Track already saved');
-        console.log('Track already exists in database');
+      if (existingTrack) {
+        const errorMsg = 'This track has already been saved to your library';
+        console.log('Track already exists:', existingTrack.id);
+        setError(errorMsg);
         return false;
       }
+
+      console.log('No existing track found, proceeding with save...');
 
       // Prepare track data for insertion
       const trackData = {
         user_id: user.id,
         title: track.title.trim(),
         artist: track.artist || 'Unknown Artist',
-        duration: Math.floor(track.duration) || 180,
+        duration: Math.max(1, Math.floor(track.duration) || 180),
         audio_url: track.audioUrl,
         image_url: track.imageUrl || 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
         tags: track.tags || null,
@@ -106,8 +120,12 @@ export function useSavedTracks() {
         play_count: 0
       };
 
-      console.log('Inserting track data:', trackData);
+      console.log('Prepared track data for insertion:', {
+        ...trackData,
+        audio_url: trackData.audio_url.substring(0, 100) + '...'
+      });
 
+      // Insert the track
       const { data, error: saveError } = await supabase
         .from('saved_tracks')
         .insert(trackData)
@@ -115,30 +133,48 @@ export function useSavedTracks() {
         .single();
 
       if (saveError) {
-        console.error('Database save error:', saveError);
+        console.error('=== DATABASE SAVE ERROR ===');
+        console.error('Error code:', saveError.code);
+        console.error('Error message:', saveError.message);
+        console.error('Error details:', saveError.details);
+        console.error('Error hint:', saveError.hint);
         throw saveError;
       }
 
       if (!data) {
-        throw new Error('No data returned from save operation');
+        const errorMsg = 'No data returned from save operation';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
-      console.log('Track saved successfully:', data);
+      console.log('=== SAVE SUCCESS ===');
+      console.log('Saved track ID:', data.id);
+      console.log('Public status:', data.is_public);
 
+      // Update local state
       const savedTrack = convertSavedTrackToTrack(data);
       setSavedTracks(prev => [savedTrack, ...prev]);
+      
+      console.log('Track added to local state successfully');
       return true;
+      
     } catch (err) {
-      console.error('Error saving track:', err);
+      console.error('=== SAVE TRACK ERROR ===');
+      console.error('Error type:', err.constructor.name);
+      console.error('Error message:', err.message);
+      console.error('Full error:', err);
+      
       let errorMessage = 'Failed to save track';
       
-      if (err.message) {
-        if (err.message.includes('duplicate key')) {
+      if (err?.message) {
+        if (err.message.includes('duplicate key') || err.message.includes('unique constraint')) {
           errorMessage = 'This track has already been saved';
-        } else if (err.message.includes('permission')) {
-          errorMessage = 'Permission denied. Please check your account status';
+        } else if (err.message.includes('permission') || err.message.includes('policy')) {
+          errorMessage = 'Permission denied. Please try signing out and back in';
         } else if (err.message.includes('network')) {
           errorMessage = 'Network error. Please check your connection and try again';
+        } else if (err.message.includes('JWT') || err.message.includes('auth')) {
+          errorMessage = 'Authentication error. Please sign out and back in';
         } else {
           errorMessage = `Save failed: ${err.message}`;
         }
@@ -146,6 +182,7 @@ export function useSavedTracks() {
       
       setError(errorMessage);
       return false;
+      
     } finally {
       setLoading(false);
     }
