@@ -42,8 +42,8 @@ class JamendoAPI {
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes
 
-  constructor(clientId: string = 'c40e3496') {
-    this.clientId = clientId;
+  constructor(clientId?: string) {
+    this.clientId = clientId || import.meta.env.VITE_JAMENDO_CLIENT_ID || 'c40e3496';
   }
 
   private getCacheKey(endpoint: string, params: URLSearchParams): string {
