@@ -38,12 +38,14 @@ interface JamendoResponse<T> {
 
 class JamendoAPI {
   private clientId: string;
+  private clientSecret: string;
   private baseUrl: string = 'https://api.jamendo.com/v3.0';
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes
 
-  constructor(clientId?: string) {
-    this.clientId = clientId || import.meta.env.VITE_JAMENDO_CLIENT_ID || '56d30c95';
+  constructor(clientId?: string, clientSecret?: string) {
+    this.clientId = clientId || import.meta.env.VITE_JAMENDO_CLIENT_ID || '17f25733';
+    this.clientSecret = clientSecret || import.meta.env.VITE_JAMENDO_CLIENT_SECRET || '3bd8e1c6eccf87b30905717ff535ea54';
   }
 
   private getCacheKey(endpoint: string, params: URLSearchParams): string {
