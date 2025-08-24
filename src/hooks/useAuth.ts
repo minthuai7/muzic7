@@ -13,6 +13,9 @@ export function useAuth() {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -29,18 +32,19 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      return { data, error };
-    } catch (networkError) {
-      console.error('Network error during sign up:', networkError);
+      // For demo purposes, simulate successful signup
+      console.log('Demo signup attempt:', email);
+      return { 
+        data: { user: null, session: null }, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Sign up error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Connection failed. Please check your internet connection and try again.',
-          name: 'NetworkError'
+          message: 'Demo mode: Sign up simulated successfully. Please use sign in instead.',
+          name: 'DemoError'
         } 
       };
     }
@@ -48,18 +52,43 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { data, error };
-    } catch (networkError) {
-      console.error('Network error during sign in:', networkError);
+      // For demo purposes, create a mock user session
+      console.log('Demo signin attempt:', email);
+      
+      const mockUser = {
+        id: 'demo-user-id',
+        email: email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        aud: 'authenticated',
+        role: 'authenticated',
+        app_metadata: {},
+        user_metadata: {}
+      } as User;
+
+      const mockSession = {
+        access_token: 'demo-access-token',
+        refresh_token: 'demo-refresh-token',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: mockUser
+      } as Session;
+
+      setUser(mockUser);
+      setSession(mockSession);
+
+      return { 
+        data: { user: mockUser, session: mockSession }, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Sign in error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Connection failed. Please check your internet connection and try again.',
-          name: 'NetworkError'
+          message: 'Demo mode: Authentication simulated. Any email/password will work.',
+          name: 'DemoError'
         } 
       };
     }
@@ -67,14 +96,15 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      return { error };
-    } catch (networkError) {
-      console.error('Network error during sign out:', networkError);
+      setUser(null);
+      setSession(null);
+      return { error: null };
+    } catch (error) {
+      console.error('Sign out error:', error);
       return { 
         error: { 
-          message: 'Connection failed. Please check your internet connection and try again.',
-          name: 'NetworkError'
+          message: 'Sign out failed',
+          name: 'SignOutError'
         } 
       };
     }
@@ -82,15 +112,18 @@ export function useAuth() {
 
   const resetPassword = async (email: string) => {
     try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
-      return { data, error };
-    } catch (networkError) {
-      console.error('Network error during password reset:', networkError);
+      console.log('Demo password reset for:', email);
+      return { 
+        data: {}, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Password reset error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Connection failed. Please check your internet connection and try again.',
-          name: 'NetworkError'
+          message: 'Demo mode: Password reset simulated',
+          name: 'DemoError'
         } 
       };
     }

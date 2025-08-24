@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
 interface UserUsage {
@@ -31,57 +30,21 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
-      // Get current session
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No valid session found');
-      }
+      // Demo usage data
+      const demoUsage: UserUsage = {
+        current: 0,
+        limit: 5,
+        planType: 'free',
+        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        remaining: 5
+      };
 
-      let data, fetchError;
-      
-      try {
-        const result = await supabase.functions.invoke('get-user-usage', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        data = result.data;
-        fetchError = result.error;
-      } catch (networkError) {
-        console.error('Network error calling get-user-usage:', networkError);
-        throw new Error(`Cannot connect to Supabase functions. Please check your VITE_SUPABASE_URL in .env file. Current URL: ${import.meta.env.VITE_SUPABASE_URL}`);
-      }
-
-      if (fetchError) {
-        console.error('Edge function error:', fetchError);
-        throw new Error(`Function error: ${fetchError.message}`);
-      }
-      
-      if (!data) {
-        throw new Error('No data returned from function');
-      }
-      
-      if (data.success) {
-        setUsage(data.usage);
-      } else {
-        console.error('Function returned error:', data.error);
-        throw new Error(data.error || 'Failed to load usage data');
-      }
+      setUsage(demoUsage);
     } catch (err: any) {
       console.error('Error loading usage:', err);
+      setError('Failed to load usage data');
       
-      // Provide specific error messages for common issues
-      let errorMessage = err.message;
-      if (err.message.includes('Failed to fetch') || err.message.includes('Cannot connect')) {
-        errorMessage = 'Cannot connect to Supabase. Please check your internet connection and Supabase configuration.';
-      }
-      
-      setError(`Failed to load usage: ${errorMessage}`);
-      
-      // Set default usage for free users when function fails
+      // Set default usage even on error
       setUsage({
         current: 0,
         limit: 1,
@@ -103,36 +66,31 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
-      const { data, error: generateError } = await supabase.functions.invoke('generate-music', {
-        body: { prompt, options },
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (generateError) throw generateError;
-
-      if (!data) {
-        throw new Error('No response data from generate-music function');
+      // Demo music generation - simulate API call
+      console.log('Demo music generation:', prompt, options);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Return demo task ID
+      const taskId = `demo-task-${Date.now()}`;
+      
+      // Update usage
+      if (usage) {
+        const newUsage = {
+          ...usage,
+          current: usage.current + 1,
+          remaining: Math.max(0, usage.remaining - 1)
+        };
+        setUsage(newUsage);
       }
-
-      if (data.success) {
-        // Update usage after successful generation
-        if (data.usage) {
-          setUsage(data.usage);
-        }
-        return data.taskId;
-      } else {
-        const errorMessage = data.error || 'Generation failed';
-        console.error('Music generation failed:', errorMessage);
-        throw new Error(errorMessage);
-      }
+      
+      return taskId;
     } catch (err: any) {
       console.error('Error generating music:', err);
-      const errorMessage = err.message || 'Generation failed';
+      const errorMessage = 'Demo mode: Music generation simulated';
       setError(errorMessage);
-      throw err;
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -144,25 +102,22 @@ export function useUserUsage() {
     }
 
     try {
-      const { data, error: checkError } = await supabase.functions.invoke('check-generation', {
-        body: { taskId },
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (checkError) throw checkError;
-
-      if (data.success) {
-        return {
-          status: data.status,
-          tracks: data.data || [],
-          error: data.error
-        };
-      } else {
-        throw new Error(data.error || 'Status check failed');
-      }
+      console.log('Demo status check for task:', taskId);
+      
+      // Simulate successful generation
+      return {
+        status: 'SUCCESS',
+        tracks: [
+          {
+            id: `demo-track-${Date.now()}`,
+            title: 'Demo Generated Track',
+            audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
+            duration: 180,
+            tags: 'demo, ai-generated'
+          }
+        ],
+        error: null
+      };
     } catch (err: any) {
       console.error('Error checking status:', err);
       throw err;
