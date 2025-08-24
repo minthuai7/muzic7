@@ -157,12 +157,12 @@ export default function MusicLibrary({
           <h2 className="text-xl md:text-2xl font-bold text-white">
             {selectedGenre && selectedGenre !== 'all' 
               ? `${selectedGenre.charAt(0).toUpperCase() + selectedGenre.slice(1)} Music`
-              : 'All Tracks'
+              : 'Free Music from Jamendo'
             }
           </h2>
           <div className="flex items-center space-x-4">
             <span className="text-gray-400 text-xs md:text-sm">
-              {tracks.length} tracks available
+              {tracks.length} free tracks available
             </span>
             <div className="flex items-center space-x-2">
               {onRefresh && (

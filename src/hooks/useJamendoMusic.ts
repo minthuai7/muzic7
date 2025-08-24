@@ -22,12 +22,12 @@ export function useJamendoMusic() {
       setError(null);
       setCurrentOffset(0);
 
-      // Load many more popular tracks initially
-      const popularTracks = await jamendoAPI.getPopularTracks(100);
+      // Load popular tracks initially with better error handling
+      const popularTracks = await jamendoAPI.getPopularTracks(50);
       
       // If no tracks from API, show a user-friendly message but don't error
       if (popularTracks.length === 0) {
-        console.warn('No tracks available from Jamendo API');
+        console.warn('No tracks available from Jamendo API - this is normal if API key is not configured');
         setTracks([]);
         setHasMore(false);
         setPlaylists([]);
@@ -36,24 +36,24 @@ export function useJamendoMusic() {
       
       const convertedTracks = popularTracks.map(track => jamendoAPI.convertToTrack(track));
       setTracks(convertedTracks);
-      setCurrentOffset(100);
-      setHasMore(popularTracks.length === 100);
+      setCurrentOffset(50);
+      setHasMore(popularTracks.length === 50);
 
-      // Load more albums as playlists
-      const albums = await jamendoAPI.getAlbums({ limit: 20 });
+      // Load albums as playlists
+      const albums = await jamendoAPI.getAlbums({ limit: 12 });
       const convertedPlaylists: Playlist[] = [];
 
-      // Process more albums in parallel for better performance
-      const albumPromises = albums.slice(0, 12).map(async (album) => {
+      // Process albums in parallel for better performance
+      const albumPromises = albums.slice(0, 8).map(async (album) => {
         // Get tracks for each album
         try {
           const albumTracks = await jamendoAPI.getTracks({
-            limit: 15,
+            limit: 10,
             search: `${album.artist_name} ${album.name}`.substring(0, 50) // Limit search query length
           });
           
           if (albumTracks.length > 0) {
-            return jamendoAPI.convertToPlaylist(album, albumTracks.slice(0, 10));
+            return jamendoAPI.convertToPlaylist(album, albumTracks.slice(0, 8));
           }
         } catch (err) {
           console.warn(`Failed to load tracks for album ${album.name}:`, err);
@@ -70,7 +70,7 @@ export function useJamendoMusic() {
 
       setPlaylists(convertedPlaylists);
     } catch (err) {
-      console.warn('Jamendo API unavailable:', err);
+      console.warn('Jamendo API unavailable - using fallback mode:', err);
       // Don't set error state, just use empty data
       setTracks([]);
       setPlaylists([]);
