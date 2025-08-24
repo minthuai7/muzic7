@@ -44,16 +44,35 @@ export function useSavedTracks() {
 
   const saveTrack = async (track: Track, isPublic: boolean = false): Promise<boolean> => {
     if (!user) {
-      setError('Must be logged in to save tracks');
+      console.error('Save track error: User not authenticated');
+      setError('You must be signed in to save tracks. Please sign in and try again.');
       return false;
     }
 
     try {
+      console.log('Attempting to save track:', { 
+        title: track.title, 
+        audioUrl: track.audioUrl?.substring(0, 50) + '...', 
+        isPublic 
+      });
+      
       setError(null);
+      setLoading(true);
 
       // Validate track data
       if (!track.title || !track.audioUrl) {
-        setError('Invalid track data - missing title or audio URL');
+        const missingFields = [];
+        if (!track.title) missingFields.push('title');
+        if (!track.audioUrl) missingFields.push('audio URL');
+        setError(`Cannot save track: missing ${missingFields.join(' and ')}`);
+        console.error('Save track validation failed:', { title: track.title, audioUrl: !!track.audioUrl });
+        return false;
+      }
+
+      // Validate audio URL format
+      if (!track.audioUrl.startsWith('http')) {
+        setError('Invalid audio URL format');
+        console.error('Invalid audio URL:', track.audioUrl);
         return false;
       }
 
@@ -63,42 +82,72 @@ export function useSavedTracks() {
         .select('id')
         .eq('user_id', user.id)
         .eq('title', track.title)
-        .eq('audio_url', track.audioUrl)
-        .single();
+        .eq('audio_url', track.audioUrl);
 
-      if (existingTrack) {
+      if (existingTrack && existingTrack.length > 0) {
         setError('Track already saved');
+        console.log('Track already exists in database');
         return false;
       }
 
+      // Prepare track data for insertion
+      const trackData = {
+        user_id: user.id,
+        title: track.title.trim(),
+        artist: track.artist || 'Unknown Artist',
+        duration: Math.floor(track.duration) || 180,
+        audio_url: track.audioUrl,
+        image_url: track.imageUrl || 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
+        tags: track.tags || null,
+        prompt: track.prompt || null,
+        task_id: track.taskId || null,
+        is_public: isPublic,
+        is_generated: track.isGenerated || false,
+        play_count: 0
+      };
+
+      console.log('Inserting track data:', trackData);
+
       const { data, error: saveError } = await supabase
         .from('saved_tracks')
-        .insert({
-          user_id: user.id,
-          title: track.title,
-          artist: track.artist,
-          duration: Math.floor(track.duration),
-          audio_url: track.audioUrl,
-          image_url: track.imageUrl,
-          tags: track.tags || null,
-          prompt: track.prompt || null,
-          task_id: track.taskId || null,
-          is_public: isPublic,
-          is_generated: track.isGenerated || false
-        })
+        .insert(trackData)
         .select()
         .single();
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        console.error('Database save error:', saveError);
+        throw saveError;
+      }
+
+      if (!data) {
+        throw new Error('No data returned from save operation');
+      }
+
+      console.log('Track saved successfully:', data);
 
       const savedTrack = convertSavedTrackToTrack(data);
       setSavedTracks(prev => [savedTrack, ...prev]);
       return true;
     } catch (err) {
       console.error('Error saving track:', err);
-      const errorMessage = err.message || 'Failed to save track';
+      let errorMessage = 'Failed to save track';
+      
+      if (err.message) {
+        if (err.message.includes('duplicate key')) {
+          errorMessage = 'This track has already been saved';
+        } else if (err.message.includes('permission')) {
+          errorMessage = 'Permission denied. Please check your account status';
+        } else if (err.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again';
+        } else {
+          errorMessage = `Save failed: ${err.message}`;
+        }
+      }
+      
       setError(errorMessage);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,7 +209,10 @@ export function useSavedTracks() {
 
   const incrementPlayCount = async (trackId: string) => {
     try {
-      await supabase.rpc('increment_play_count', { track_id: trackId });
+      const { error } = await supabase.rpc('increment_play_count', { track_id: trackId });
+      if (error) {
+        console.warn('Failed to increment play count:', error);
+      }
     } catch (err) {
       console.error('Error incrementing play count:', err);
     }

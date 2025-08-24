@@ -13,25 +13,50 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
   const [isPublic, setIsPublic] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
+  const handleClose = () => {
+    setIsPublic(false);
+    setLoading(false);
+    setMessage('');
+    setError('');
+    onClose();
+  };
   const handleSave = async () => {
-    if (!track) return;
+    if (!track) {
+      setError('No track selected to save');
+      return;
+    }
+
+    // Validate track data before saving
+    if (!track.title?.trim()) {
+      setError('Track must have a title to be saved');
+      return;
+    }
+
+    if (!track.audioUrl) {
+      setError('Track must have an audio URL to be saved');
+      return;
+    }
 
     setLoading(true);
     setMessage('');
+    setError('');
 
     try {
+      console.log('SaveTrackModal: Attempting to save track:', track.title);
       const success = await onSave(track, isPublic);
       if (success) {
         setMessage('Track saved successfully!');
         setTimeout(() => {
-          onClose();
-          setMessage('');
-          setIsPublic(false);
+          handleClose();
         }, 1500);
+      } else {
+        setError('Failed to save track. Please try again.');
       }
     } catch (error) {
-      setMessage('Failed to save track');
+      console.error('SaveTrackModal: Save error:', error);
+      setError('An unexpected error occurred while saving');
     } finally {
       setLoading(false);
     }
@@ -48,7 +73,8 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
             Save Track
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={loading}
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-400" />
@@ -56,19 +82,18 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
         </div>
 
         {message && (
-          <div className={`mb-4 p-3 rounded-lg ${
-            message.includes('success') 
-              ? 'bg-green-500/20 border border-green-500/30' 
-              : 'bg-red-500/20 border border-red-500/30'
-          }`}>
-            <p className={`text-sm ${
-              message.includes('success') ? 'text-green-400' : 'text-red-400'
-            }`}>
+          <div className="mb-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-green-400 text-sm">
               {message}
             </p>
           </div>
         )}
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
         {/* Track Preview */}
         <div className="bg-white/5 rounded-xl p-4 mb-6 border border-white/10">
           <div className="flex items-center space-x-4">
@@ -90,6 +115,11 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
                   <span className="text-purple-400 text-xs">AI Generated</span>
                 </div>
               )}
+              {track.audioUrl && (
+                <p className="text-gray-500 text-xs mt-1">
+                  Audio: {track.audioUrl.length > 50 ? track.audioUrl.substring(0, 50) + '...' : track.audioUrl}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -105,6 +135,7 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
                 name="visibility"
                 checked={!isPublic}
                 onChange={() => setIsPublic(false)}
+                disabled={loading}
                 className="w-4 h-4 text-purple-600 bg-white/10 border-white/20 focus:ring-purple-500"
               />
               <div className="flex items-center space-x-2">
@@ -122,6 +153,7 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
                 name="visibility"
                 checked={isPublic}
                 onChange={() => setIsPublic(true)}
+                disabled={loading}
                 className="w-4 h-4 text-purple-600 bg-white/10 border-white/20 focus:ring-purple-500"
               />
               <div className="flex items-center space-x-2">

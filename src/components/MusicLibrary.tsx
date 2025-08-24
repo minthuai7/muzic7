@@ -93,7 +93,14 @@ export default function MusicLibrary({
           <span className="text-gray-400 text-sm min-w-[40px] text-right">
             {formatTime(track.duration)}
           </span>
-          <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-full transition-all">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              // Add save functionality here if needed
+              console.log('Save track:', track.title);
+            }}
+            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-full transition-all"
+          >
             <MoreHorizontal className="w-4 h-4 text-gray-400" />
           </button>
         </div>

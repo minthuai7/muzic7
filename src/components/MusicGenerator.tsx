@@ -146,12 +146,14 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
 
   const handleSaveConfirm = async (track: Track, isPublic: boolean) => {
     try {
+      console.log('MusicGenerator: Saving track with public status:', isPublic);
       const success = await saveTrack(track, isPublic);
       if (success) {
         setSaveMessage('Track saved successfully!');
         setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        setError('Failed to save track. Please try again.');
+        // Error message will be set by the saveTrack function
+        console.log('MusicGenerator: Save operation returned false');
         setTimeout(() => setError(''), 3000);
       }
       return success;
