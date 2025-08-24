@@ -22,17 +22,10 @@ export function useJamendoMusic() {
       setError(null);
       setCurrentOffset(0);
 
-      // Load popular tracks initially with better error handling
+      console.log('Loading initial music from Jamendo...');
       const popularTracks = await jamendoAPI.getPopularTracks(50);
       
-      // If no tracks from API, show a user-friendly message but don't error
-      if (popularTracks.length === 0) {
-        console.warn('No tracks available from Jamendo API - this is normal if API key is not configured');
-        setTracks([]);
-        setHasMore(false);
-        setPlaylists([]);
-        return;
-      }
+      console.log(`Loaded ${popularTracks.length} popular tracks from Jamendo`);
       
       const convertedTracks = popularTracks.map(track => jamendoAPI.convertToTrack(track));
       setTracks(convertedTracks);
@@ -40,7 +33,9 @@ export function useJamendoMusic() {
       setHasMore(popularTracks.length === 50);
 
       // Load albums as playlists
+      console.log('Loading albums from Jamendo...');
       const albums = await jamendoAPI.getAlbums({ limit: 12 });
+      console.log(`Loaded ${albums.length} albums from Jamendo`);
       const convertedPlaylists: Playlist[] = [];
 
       // Process albums in parallel for better performance
@@ -49,7 +44,8 @@ export function useJamendoMusic() {
         try {
           const albumTracks = await jamendoAPI.getTracks({
             limit: 10,
-            search: `${album.artist_name} ${album.name}`.substring(0, 50) // Limit search query length
+            search: `${album.artist_name} ${album.name}`.substring(0, 50), // Limit search query length
+            audioformat: 'mp32'
           });
           
           if (albumTracks.length > 0) {
@@ -68,13 +64,17 @@ export function useJamendoMusic() {
         }
         });
 
+      console.log(`Created ${convertedPlaylists.length} playlists from albums`);
       setPlaylists(convertedPlaylists);
     } catch (err) {
-      console.warn('Jamendo API unavailable - using fallback mode:', err);
-      // Don't set error state, just use empty data
-      setTracks([]);
-      setPlaylists([]);
-      setHasMore(false);
+      console.error('Error loading Jamendo music:', err);
+      setError(`Failed to load music: ${err.message}`);
+      // Set empty data on error
+      if (tracks.length === 0) {
+        setTracks([]);
+        setPlaylists([]);
+        setHasMore(false);
+      }
     } finally {
       setLoading(false);
     }
