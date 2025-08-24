@@ -27,11 +27,27 @@ export function useUserUsage() {
   const loadUsage = async () => {
     if (!user) return;
 
+    // Check if Supabase URL is configured
+    if (!import.meta.env.VITE_SUPABASE_URL) {
+      console.error('VITE_SUPABASE_URL not configured');
+      setError('Supabase configuration missing');
+      // Set default usage on configuration error
+      setUsage({
+        current: 0,
+        limit: 1,
+        planType: 'free',
+        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        remaining: 1
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-usage`;
+      
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -53,7 +69,15 @@ export function useUserUsage() {
       }
     } catch (err: any) {
       console.error('Error loading usage:', err);
-      setError('Failed to load usage data');
+      
+      // Handle different types of fetch errors
+      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        setError('Unable to connect to server. Please check your internet connection.');
+      } else if (err.message.includes('HTTP error')) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Failed to load usage data');
+      }
       
       // Set default usage on error
       setUsage({
