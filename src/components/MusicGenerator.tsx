@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw, CheckCircle } from 'lucide-react';
+import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw, CheckCircle, Zap } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
 import SaveTrackModal from './SaveTrackModal';
 import { useSavedTracks } from '../hooks/useSavedTracks';
