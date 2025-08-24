@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,22 +6,35 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Validate environment variables
+    // Get environment variables with fallbacks
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      urlValue: supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : 'missing'
+    });
+    
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase environment variables');
+      console.error('Missing Supabase environment variables:', {
+        SUPABASE_URL: !!supabaseUrl,
+        SUPABASE_SERVICE_ROLE_KEY: !!supabaseServiceKey
+      });
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Server configuration error: Missing environment variables'
+          error: 'Server configuration error: Missing environment variables',
+          details: {
+            hasUrl: !!supabaseUrl,
+            hasServiceKey: !!supabaseServiceKey
+          }
         }),
         {
           status: 500,
@@ -31,6 +43,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Creating Supabase client...');
     const supabaseClient = createClient(
       supabaseUrl,
       supabaseServiceKey
@@ -39,6 +52,7 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
         JSON.stringify({
           success: false,
@@ -52,14 +66,16 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
+    console.log('Attempting to get user with token...');
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
-      console.error('Auth error:', authError);
+      console.error('Auth error:', authError?.message || 'No user found');
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid authentication'
+          error: 'Invalid authentication',
+          details: authError?.message
         }),
         {
           status: 401,
@@ -68,7 +84,10 @@ serve(async (req) => {
       );
     }
 
+    console.log('User authenticated:', user.id);
+
     // Get user subscription info
+    console.log('Fetching user subscription...');
     const { data: subscription, error: subError } = await supabaseClient
       .from('user_subscriptions')
       .select('*')
@@ -76,11 +95,12 @@ serve(async (req) => {
       .single()
 
     if (subError && subError.code !== 'PGRST116') {
-      console.error('Database error:', subError);
+      console.error('Database error:', subError.message, subError.code);
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Database error: ${subError.message}`
+          error: `Database error: ${subError.message}`,
+          details: subError
         }),
         {
           status: 500,
@@ -91,6 +111,7 @@ serve(async (req) => {
 
     // If no subscription exists, create default free plan
     if (!subscription) {
+      console.log('No subscription found, creating default...');
       const { data: newSub, error: createError } = await supabaseClient
         .from('user_subscriptions')
         .insert({
@@ -103,9 +124,11 @@ serve(async (req) => {
         .single()
 
       if (createError) {
+        console.error('Error creating subscription:', createError);
         throw createError
       }
 
+      console.log('Created new subscription:', newSub.id);
       return new Response(
         JSON.stringify({
           success: true,
@@ -123,11 +146,14 @@ serve(async (req) => {
       )
     }
 
+    console.log('Found existing subscription:', subscription.id);
+
     // Check if we need to reset usage
     const now = new Date()
     const resetDate = new Date(subscription.reset_date)
     
     if (now >= resetDate) {
+      console.log('Resetting usage for new period...');
       const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
       
       const { data: updatedSub, error: updateError } = await supabaseClient
@@ -141,9 +167,11 @@ serve(async (req) => {
         .single()
 
       if (updateError) {
+        console.error('Error updating subscription:', updateError);
         throw updateError
       }
 
+      console.log('Usage reset successfully');
       return new Response(
         JSON.stringify({
           success: true,
@@ -161,6 +189,7 @@ serve(async (req) => {
       )
     }
 
+    console.log('Returning current usage data');
     return new Response(
       JSON.stringify({
         success: true,
@@ -178,11 +207,14 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Usage check error:', error)
+    console.error('Usage check error:', error.message || error)
+    console.error('Error stack:', error.stack)
     
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error'
+        success: false,
+        error: error.message || 'Internal server error',
+        details: error.stack
       }),
       {
         status: 500,

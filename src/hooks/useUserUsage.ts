@@ -54,32 +54,18 @@ export function useUserUsage() {
   const loadUsage = async () => {
     if (!user) return;
 
-    // Check if Supabase URL is configured
-    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
-      console.warn('Supabase not configured - using default usage data');
-      setError('Supabase configuration missing');
-      // Set default usage on configuration error
-      const defaultUsage = {
-        current: 0,
-        limit: 1,
-        planType: 'free',
-        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        remaining: 1
-      };
-      setUsage(updateUsageWithApiStats(defaultUsage));
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
-      // Additional check for edge function availability
+      // Check if Supabase URL is configured
       if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
-        throw new Error('Supabase not configured');
+        throw new Error('Supabase not configured - please set VITE_SUPABASE_URL');
       }
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-usage`;
+      
+      console.log('Fetching usage from:', apiUrl);
       
       // Check if we have a valid session token
       const session = await supabase.auth.getSession();
@@ -87,6 +73,7 @@ export function useUserUsage() {
         throw new Error('No valid session token');
       }
 
+      console.log('Making request with token...');
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -95,39 +82,45 @@ export function useUserUsage() {
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Usage result:', result);
       
       if (result.success) {
         setUsage(updateUsageWithApiStats(result.usage));
       } else {
-        throw new Error(result.error || 'Failed to load usage');
+        console.error('API error:', result);
+        throw new Error(result.error || 'Failed to load usage data');
       }
     } catch (err: any) {
-      console.error('Error loading usage:', err);
+      console.error('Error loading usage:', err.message || err);
+      console.error('Full error:', err);
       
       // Handle different types of fetch errors
       if (err.message?.includes('Supabase not configured')) {
         setError('Supabase not configured. Please set up your environment variables.');
       } else if (err.message?.includes('No valid session token')) {
         setError('Authentication required. Please sign in again.');
-      } else 
-      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+      } else if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
         setError('Unable to connect to server. Please check your internet connection.');
       } else if (err.message.includes('HTTP error')) {
         setError('Server error. Please try again later.');
       } else {
-        setError('Failed to load usage data');
+        setError(`Failed to load usage data: ${err.message}`);
       }
       
       // Set default usage on error
       const defaultUsage = {
         current: 0,
         limit: 1,
-        planType: 'free',
+        planType: 'free' as const,
         resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         remaining: 1
       };
