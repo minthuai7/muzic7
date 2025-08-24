@@ -215,7 +215,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
           <p className="text-red-400 text-sm">{error}</p>
-          {error.includes('No generations remaining') && (
+          {(error.includes('No generations remaining') || error.includes('Generation limit exceeded')) && (
             <div className="mt-3 pt-3 border-t border-red-500/30">
               <p className="text-red-300 text-sm mb-2">Need more AI generations?</p>
               <button

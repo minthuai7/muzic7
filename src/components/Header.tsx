@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Music, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserUsage } from '../hooks/useUserUsage';
 import UserMenu from './UserMenu';
 import AuthModal from './AuthModal';
 import { useState } from 'react';
@@ -43,7 +44,17 @@ export default function Header({ onSearch }: HeaderProps) {
           <div className="flex items-center space-x-2 md:space-x-4">
             {!loading && (
               user ? (
-                <UserMenu />
+                <div className="flex items-center space-x-3">
+                  {usage && (
+                    <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-white/10 rounded-full">
+                      <span className="text-xs text-gray-300">Generations:</span>
+                      <span className={`text-xs font-bold ${usage.remaining > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {usage.remaining}/{usage.limit}
+                      </span>
+                    </div>
+                  )}
+                  <UserMenu />
+                </div>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}

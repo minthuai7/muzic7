@@ -167,20 +167,37 @@ export function useUserUsage() {
       throw new Error('Must be logged in to generate music');
     }
 
-    if (!usage || usage.remaining <= 0) {
-      throw new Error('No generations remaining. Please upgrade your plan.');
-    }
-
     try {
       setLoading(true);
       setError(null);
+
+      // Check usage limit before generation
+      if (!usage) {
+        await loadUsage();
+      }
+      
+      const currentUsage = usage || { current: 0, limit: 1, remaining: 1 };
+      
+      if (currentUsage.remaining <= 0) {
+        throw new Error('No generations remaining. Please upgrade your plan or wait for your limit to reset.');
+      }
 
       // Use the SunoAPI directly with multiple key rotation
       console.log('🎵 Starting music generation with multiple API keys...');
       const taskId = await sunoAPI.generateMusic(prompt, options);
       
-      // Update usage after successful generation
-      await loadUsage();
+      // Increment usage count immediately after successful generation start
+      if (usage) {
+        setUsage(prev => prev ? {
+          ...prev,
+          current: prev.current + 1,
+          remaining: Math.max(0, prev.remaining - 1)
+        } : prev);
+      }
+      
+      // Update usage from server
+      setTimeout(() => loadUsage(), 1000);
+      
       return taskId;
       
     } catch (err: any) {
