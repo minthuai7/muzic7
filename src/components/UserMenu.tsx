@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { User, LogOut, Settings, Music } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import ProfileModal from './ProfileModal';
@@ -46,13 +47,23 @@ export default function UserMenu() {
         </div>
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-[99999]">
+      {isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999]">
+          {/* Transparent backdrop */}
           <div
-            className="fixed inset-0 z-[99998] bg-transparent"
+            className="fixed inset-0 bg-transparent"
             onClick={() => setIsOpen(false)}
           />
-            <div className="relative z-[99999] p-4 border-b border-white/10">
+          
+          {/* Dropdown positioned relative to button */}
+          <div 
+            className="absolute w-64 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl shadow-xl"
+            style={{
+              top: '60px', // Adjust based on header height
+              right: '24px', // Adjust based on padding
+            }}
+          >
+            <div className="p-4 border-b border-white/10">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-medium">
                   {userInitials}
@@ -64,7 +75,7 @@ export default function UserMenu() {
               </div>
             </div>
 
-            <div className="relative z-[99999] p-2">
+            <div className="p-2">
               <button 
                 onClick={handleProfileClick}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -88,7 +99,7 @@ export default function UserMenu() {
               </button>
             </div>
 
-            <div className="relative z-[99999] p-2 border-t border-white/10">
+            <div className="p-2 border-t border-white/10">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -98,8 +109,9 @@ export default function UserMenu() {
               </button>
             </div>
           </div>
+        </div>,
+        document.body
       )}
-
       <ProfileModal
         isOpen={showProfile}
         onClose={() => setShowProfile(false)}
