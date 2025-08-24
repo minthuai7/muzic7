@@ -6,6 +6,8 @@ import MusicGenerator from './components/MusicGenerator';
 import MusicPlayer from './components/MusicPlayer';
 import MyMusicLibrary from './components/MyMusicLibrary';
 import PublicMusicFeed from './components/PublicMusicFeed';
+import PaymentPackages from './components/PaymentPackages';
+import AdminPanel from './components/AdminPanel';
 import LoadingSpinner from './components/LoadingSpinner';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
@@ -161,6 +163,18 @@ function App() {
         );
       case 'public':
         return <PublicMusicFeed onPlayTrack={playTrack} currentTrack={currentTrack} isPlaying={isPlaying} />;
+      case 'packages':
+        return (
+          <ProtectedRoute requireAuth={true}>
+            <PaymentPackages />
+          </ProtectedRoute>
+        );
+      case 'admin':
+        return (
+          <ProtectedRoute requireAuth={true}>
+            <AdminPanel />
+          </ProtectedRoute>
+        );
       case 'liked':
         return (
           <ProtectedRoute requireAuth={true}>

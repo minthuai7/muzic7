@@ -1,6 +1,7 @@
 import React from 'react';
-import { Home, Music, Sparkles, Library, Heart, Clock, Globe, User as UserIcon } from 'lucide-react';
+import { Home, Music, Sparkles, Library, Heart, Clock, Globe, User as UserIcon, CreditCard, Shield } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { useAdmin } from '../hooks/useAdmin';
 
 interface SidebarProps {
   currentView: string;
@@ -9,14 +10,18 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
+  const { isAdmin } = useAdmin();
+
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'library', label: 'Your Library', icon: Library },
     { id: 'public', label: 'Public Feed', icon: Globe },
     { id: 'generator', label: 'AI Generator', icon: Sparkles, requireAuth: true },
     { id: 'mymusic', label: 'My Music', icon: UserIcon, requireAuth: true },
+    { id: 'packages', label: 'Buy AI Packs', icon: CreditCard, requireAuth: true },
     { id: 'liked', label: 'Liked Songs', icon: Heart, requireAuth: true },
     { id: 'recent', label: 'Recently Played', icon: Clock, requireAuth: true },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: Shield, requireAuth: true, adminOnly: true }] : []),
   ];
 
   return (
@@ -24,25 +29,30 @@ export default function Sidebar({ currentView, onViewChange, user }: SidebarProp
       <div className="space-y-2">
         {menuItems.map((item) => {
           const isDisabled = item.requireAuth && !user;
+          const isAdminOnly = item.adminOnly && !isAdmin;
           
           return (
             <button
               key={item.id}
-              onClick={() => !isDisabled && onViewChange(item.id)}
-              disabled={isDisabled}
+              onClick={() => !isDisabled && !isAdminOnly && onViewChange(item.id)}
+              disabled={isDisabled || isAdminOnly}
               className={`w-full flex items-center justify-center md:justify-start space-x-0 md:space-x-3 px-2 md:px-4 py-3 rounded-lg transition-all ${
                 currentView === item.id
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                  : isDisabled
+                  : isDisabled || isAdminOnly
                   ? 'text-gray-500 cursor-not-allowed opacity-50'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
               }`}
-              title={isDisabled ? `${item.label} (Sign in required)` : item.label}
+              title={
+                isDisabled ? `${item.label} (Sign in required)` :
+                isAdminOnly ? `${item.label} (Admin only)` :
+                item.label
+              }
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium hidden md:block">
                 {item.label}
-                {isDisabled && <span className="text-xs ml-1">🔒</span>}
+                {(isDisabled || isAdminOnly) && <span className="text-xs ml-1">🔒</span>}
               </span>
             </button>
           );
