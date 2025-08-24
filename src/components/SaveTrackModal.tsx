@@ -138,7 +138,7 @@ export default function SaveTrackModal({ isOpen, onClose, track, onSave }: SaveT
         {/* Action Buttons */}
         <div className="flex space-x-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
             className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-50"
           >

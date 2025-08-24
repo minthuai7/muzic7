@@ -49,8 +49,27 @@ export function useSavedTracks() {
     }
 
     try {
-      setLoading(true);
       setError(null);
+
+      // Validate track data
+      if (!track.title || !track.audioUrl) {
+        setError('Invalid track data - missing title or audio URL');
+        return false;
+      }
+
+      // Check if track already exists
+      const { data: existingTrack } = await supabase
+        .from('saved_tracks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('title', track.title)
+        .eq('audio_url', track.audioUrl)
+        .single();
+
+      if (existingTrack) {
+        setError('Track already saved');
+        return false;
+      }
 
       const { data, error: saveError } = await supabase
         .from('saved_tracks')
@@ -61,9 +80,9 @@ export function useSavedTracks() {
           duration: Math.floor(track.duration),
           audio_url: track.audioUrl,
           image_url: track.imageUrl,
-          tags: track.tags,
-          prompt: track.prompt,
-          task_id: track.taskId,
+          tags: track.tags || null,
+          prompt: track.prompt || null,
+          task_id: track.taskId || null,
           is_public: isPublic,
           is_generated: track.isGenerated || false
         })
@@ -77,10 +96,9 @@ export function useSavedTracks() {
       return true;
     } catch (err) {
       console.error('Error saving track:', err);
-      setError('Failed to save track');
+      const errorMessage = err.message || 'Failed to save track';
+      setError(errorMessage);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 

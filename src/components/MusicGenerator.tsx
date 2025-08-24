@@ -145,8 +145,22 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   };
 
   const handleSaveConfirm = async (track: Track, isPublic: boolean) => {
-    const success = await saveTrack(track, isPublic);
-    return success;
+    try {
+      const success = await saveTrack(track, isPublic);
+      if (success) {
+        setSaveMessage('Track saved successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        setError('Failed to save track. Please try again.');
+        setTimeout(() => setError(''), 3000);
+      }
+      return success;
+    } catch (error) {
+      console.error('Error saving track:', error);
+      setError('Failed to save track. Please try again.');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
   };
 
   return (
