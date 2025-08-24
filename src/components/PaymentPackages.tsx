@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Zap, Star, ShoppingCart, Clock, CheckCircle } from 'lucide-react';
+import { Crown, Zap, Star, ShoppingCart, Clock, CheckCircle, CreditCard } from 'lucide-react';
 import { usePayments } from '../hooks/usePayments';
 import { useUserUsage } from '../hooks/useUserUsage';
 import PaymentModal from './PaymentModal';
