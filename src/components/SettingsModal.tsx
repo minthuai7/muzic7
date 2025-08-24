@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Settings,
@@ -67,21 +68,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[99999] flex">
+  const modalContent = (
+    <div className="fixed inset-0 z-[999999] flex" style={{ zIndex: 999999 }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        style={{ zIndex: 999998 }}
         onClick={onClose}
       />
       
       {/* Slide Panel */}
-      <div className={`ml-auto h-full w-full max-w-md bg-gray-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-out ${
+      <div 
+        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
+      }`}
+        style={{ zIndex: 999999 }}
+      >
         
         {/* Header - Fixed */}
-        <div className="sticky top-0 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-white/10 p-4">
+        <div className="sticky top-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-b border-white/20 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
@@ -352,4 +357,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
