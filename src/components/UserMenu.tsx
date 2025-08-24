@@ -49,7 +49,7 @@ export default function UserMenu() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-[9999]">
           <div
-            className="fixed inset-0 -z-10"
+            className="fixed inset-0 z-[9998] bg-transparent"
             onClick={() => setIsOpen(false)}
           />
             <div className="p-4 border-b border-white/10">
