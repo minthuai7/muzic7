@@ -24,6 +24,16 @@ export function useJamendoMusic() {
 
       // Load many more popular tracks initially
       const popularTracks = await jamendoAPI.getPopularTracks(100);
+      
+      // If no tracks from API, show a user-friendly message but don't error
+      if (popularTracks.length === 0) {
+        console.warn('No tracks available from Jamendo API');
+        setTracks([]);
+        setHasMore(false);
+        setPlaylists([]);
+        return;
+      }
+      
       const convertedTracks = popularTracks.map(track => jamendoAPI.convertToTrack(track));
       setTracks(convertedTracks);
       setCurrentOffset(100);
@@ -60,8 +70,11 @@ export function useJamendoMusic() {
 
       setPlaylists(convertedPlaylists);
     } catch (err) {
-      setError('Failed to load music from Jamendo');
-      console.error('Error loading Jamendo music:', err);
+      console.warn('Jamendo API unavailable:', err);
+      // Don't set error state, just use empty data
+      setTracks([]);
+      setPlaylists([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }

@@ -31,22 +31,47 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
+      // Get current session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No valid session found');
+      }
+
       const { data, error: fetchError } = await supabase.functions.invoke('get-user-usage', {
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      if (fetchError) throw fetchError;
-
+      if (fetchError) {
+        console.error('Edge function error:', fetchError);
+        throw new Error(`Function error: ${fetchError.message}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from function');
+      }
       if (data.success) {
         setUsage(data.usage);
       } else {
-        throw new Error(data.error || 'Failed to load usage');
+        console.error('Function returned error:', data.error);
+        throw new Error(data.error || 'Failed to load usage data');
       }
     } catch (err: any) {
       console.error('Error loading usage:', err);
-      setError(err.message || 'Failed to load usage');
+      setError(`Failed to load usage: ${err.message}`);
+      
+      // Set default usage for free users when function fails
+      setUsage({
+        current: 0,
+        limit: 1,
+        planType: 'free',
+        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        remaining: 1
+      });
     } finally {
       setLoading(false);
     }

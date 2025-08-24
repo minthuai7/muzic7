@@ -13,22 +13,59 @@ serve(async (req) => {
   }
 
   try {
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Server configuration error: Missing environment variables'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl,
+      supabaseServiceKey
     )
 
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header')
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No authorization header provided'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
-      throw new Error('Invalid authentication')
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid authentication'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Get user subscription info
@@ -39,7 +76,17 @@ serve(async (req) => {
       .single()
 
     if (subError && subError.code !== 'PGRST116') {
-      throw subError
+      console.error('Database error:', subError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Database error: ${subError.message}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // If no subscription exists, create default free plan

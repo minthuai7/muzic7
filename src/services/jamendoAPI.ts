@@ -71,6 +71,12 @@ class JamendoAPI {
     include?: string;
     audiodlformat?: string;
   } = {}): Promise<JamendoTrack[]> {
+    // Validate client ID before making request
+    if (!this.clientId || this.clientId === 'your_jamendo_client_id') {
+      console.warn('Invalid Jamendo client ID. Using fallback data.');
+      return [];
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       format: 'json',
@@ -91,16 +97,22 @@ class JamendoAPI {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/tracks/?${params}`);
+      const response = await fetch(`${this.baseUrl}/tracks/?${params}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.warn(`Jamendo API error: ${response.status} ${response.statusText}`);
+        return [];
       }
       const data: JamendoResponse<JamendoTrack> = await response.json();
       const results = data.results || [];
       this.setCache(cacheKey, results);
       return results;
     } catch (error) {
-      console.error('Error fetching tracks:', error);
+      console.warn('Jamendo API unavailable, using fallback:', error);
       return [];
     }
   }
