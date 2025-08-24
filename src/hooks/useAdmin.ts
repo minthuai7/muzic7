@@ -64,32 +64,42 @@ export function useAdmin() {
         .from('payment_orders')
         .select(`
           *,
-          payment_packages (*),
-          user_profiles (username, display_name, avatar_url)
+          payment_packages (*)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get user emails from auth.users (this requires service role)
-      const ordersWithEmails = await Promise.all(
+      // Get user details from both auth.users and user_profiles
+      const ordersWithUserDetails = await Promise.all(
         (data || []).map(async (order) => {
           try {
+            // Get user email from auth.users
             const { data: userData } = await supabase.auth.admin.getUserById(order.user_id);
+            
+            // Get user profile data separately
+            const { data: profileData } = await supabase
+              .from('user_profiles')
+              .select('username, display_name, avatar_url')
+              .eq('id', order.user_id)
+              .maybeSingle();
+
             return {
               ...order,
-              user_email: userData.user?.email || 'Unknown'
+              user_email: userData.user?.email || 'Unknown',
+              user_profiles: profileData
             };
           } catch {
             return {
               ...order,
-              user_email: 'Unknown'
+              user_email: 'Unknown',
+              user_profiles: null
             };
           }
         })
       );
 
-      setAllOrders(ordersWithEmails);
+      setAllOrders(ordersWithUserDetails);
     } catch (err) {
       console.error('Error loading all orders:', err);
       setError('Failed to load orders');
