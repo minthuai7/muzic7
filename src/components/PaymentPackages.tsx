@@ -34,10 +34,20 @@ export default function PaymentPackages() {
     <div className="p-6 space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-white mb-4">AI Music Generation Packages</h2>
+        <div className="flex items-center justify-center mb-4">
+          <div className="bg-gradient-to-r from-yellow-600 to-orange-600 p-4 rounded-full mr-4">
+            <CreditCard className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-white">Buy AI Music Packs</h2>
+        </div>
         <p className="text-gray-400 max-w-2xl mx-auto">
-          Unlock unlimited creativity with our AI music generation packages. Perfect for musicians, content creators, and music enthusiasts.
+          Unlock unlimited creativity with our AI music generation packages. Perfect for musicians, content creators, and music enthusiasts in Myanmar.
         </p>
+        <div className="mt-4 p-4 bg-blue-500/10 rounded-xl border border-blue-500/30 max-w-lg mx-auto">
+          <p className="text-blue-300 text-sm">
+            💡 <strong>Free Trial:</strong> Every user gets 1 free AI music generation. Purchase packs for unlimited creativity!
+          </p>
+        </div>
       </div>
 
       {/* Current Usage */}
