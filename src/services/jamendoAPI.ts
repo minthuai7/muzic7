@@ -194,19 +194,33 @@ class JamendoAPI {
       format: 'json',
       id: trackIds.join('+'),
       include: 'musicinfo',
-      audiodlformat: 'mp32'
+      audiodlformat: 'mp32',
+      audioformat: 'mp32'
     });
 
     try {
-      const response = await fetch(`${this.baseUrl}/tracks/?${params}`);
+      const response = await fetch(`${this.baseUrl}/tracks/?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'MuzAI-App/1.0',
+        },
+      });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Jamendo Tracks by ID API error: ${response.status}`, errorText);
+        throw new Error(`Jamendo API error: ${response.status}`);
       }
       const data: JamendoResponse<JamendoTrack> = await response.json();
+      
+      if (data.headers.code !== 0) {
+        console.error('Jamendo API returned error:', data.headers.error_message);
+        throw new Error(data.headers.error_message || 'Jamendo API error');
+      }
+      
       return data.results || [];
     } catch (error) {
       console.error('Error fetching tracks by IDs:', error);
-      return [];
+      throw error;
     }
   }
   // Convert Jamendo track to our Track interface
