@@ -184,3 +184,5 @@ export default function PaymentPackages() {
     </div>
   );
 }
+
+export default PaymentPackages
