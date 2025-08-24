@@ -257,25 +257,40 @@ export function useSavedTracks() {
 
   const getPublicTracks = async (): Promise<Track[]> => {
     try {
+      console.log('=== LOADING PUBLIC TRACKS ===');
+      
       const { data, error: fetchError } = await supabase
         .from('saved_tracks')
         .select(`
           *,
           user_profiles (
             username,
-            display_name
+            display_name,
+            avatar_url
           )
         `)
         .eq('is_public', true)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (fetchError) throw fetchError;
 
-      return (data || []).map(item => ({
+      console.log('Public tracks loaded:', data?.length || 0);
+      
+      const publicTracks = (data || []).map(item => ({
         ...convertSavedTrackToTrack(item),
-        artist: item.user_profiles?.display_name || item.user_profiles?.username || 'Anonymous'
+        artist: item.user_profiles?.display_name || item.user_profiles?.username || item.artist || 'Anonymous User'
       }));
+      
+      console.log('Converted public tracks:', publicTracks.map(t => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        isGenerated: t.isGenerated,
+        isPublic: t.isPublic
+      })));
+      
+      return publicTracks;
     } catch (err) {
       console.error('Error loading public tracks:', err);
       return [];
