@@ -10,8 +10,6 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_u
     urlValue: supabaseUrl,
     keyValue: supabaseAnonKey ? 'Present' : 'Missing'
   });
-  console.warn('Supabase not configured. Some features will be disabled.');
-}
 
 // Create a mock client if Supabase is not configured
 const createMockSupabaseClient = () => ({
@@ -35,20 +33,20 @@ const createMockSupabaseClient = () => ({
 export const supabase = (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_url' || supabaseAnonKey === 'your_supabase_anon_key') 
   ? createMockSupabaseClient()
   : createClient(supabaseUrl, supabaseAnonKey, {
-  }
-  )
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'ai-music-studio',
-      'Content-Type': 'application/json'
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'ai-music-studio',
+          'Content-Type': 'application/json'
+        }
+      }
     }
   }
