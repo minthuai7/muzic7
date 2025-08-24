@@ -1,99 +1,243 @@
 import { GenerationOptions, KieAIResponse } from '../types/music';
 
 class SunoAPI {
-  private apiKeys: string[];
-  private currentKeyIndex: number;
+  private apiKeys: string[] = [];
+  private currentKeyIndex: number = 0;
   private baseUrl: string = 'https://api.kie.ai/api/v1';
-  private keyUsage: Map<string, { count: number; resetTime: number }>;
-  private maxRequestsPerKey: number = 50; // Adjust based on your rate limits
-  private resetInterval: number = 60 * 60 * 1000; // 1 hour in milliseconds
+  private keyUsage: Map<string, { count: number; resetTime: number; lastUsed: number }> = new Map();
+  private maxRequestsPerKey: number = 100; // Requests per hour per key
+  private resetInterval: number = 60 * 60 * 1000; // 1 hour
+  private keyRotationDelay: number = 2000; // 2 seconds between key switches
 
-  constructor(apiKeys: string | string[]) {
-    this.apiKeys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
-    this.currentKeyIndex = 0;
-    this.keyUsage = new Map();
+  constructor(apiKeys?: string | string[]) {
+    // Initialize with provided keys or load from environment
+    if (apiKeys) {
+      this.apiKeys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
+    } else {
+      this.loadApiKeysFromEnvironment();
+    }
     
-    // Initialize usage tracking for all keys
-    this.apiKeys.forEach(key => {
-      this.keyUsage.set(key, { count: 0, resetTime: Date.now() + this.resetInterval });
+    this.initializeKeyUsageTracking();
+    console.log(`🔑 Initialized SunoAPI with ${this.apiKeys.length} API keys`);
+  }
+
+  private loadApiKeysFromEnvironment(): void {
+    // Try to load multiple keys from environment variables
+    const keys: string[] = [];
+    
+    // Check for multiple key format: MUSIC_AI_API_KEY_1, MUSIC_AI_API_KEY_2, etc.
+    for (let i = 1; i <= 10; i++) {
+      const key = import.meta.env[`VITE_MUSIC_AI_API_KEY_${i}`];
+      if (key && key.trim()) {
+        keys.push(key.trim());
+      }
+    }
+    
+    // Fallback to single key
+    if (keys.length === 0) {
+      const singleKey = import.meta.env.VITE_MUSIC_AI_API_KEY;
+      if (singleKey && singleKey.trim()) {
+        keys.push(singleKey.trim());
+      }
+    }
+    
+    // Default fallback key if no environment variables
+    if (keys.length === 0) {
+      keys.push('4f52e3f37a67bb5aed649a471e9989b9'); // Fallback key
+    }
+    
+    this.apiKeys = keys;
+  }
+
+  private initializeKeyUsageTracking(): void {
+    this.apiKeys.forEach((key, index) => {
+      this.keyUsage.set(key, { 
+        count: 0, 
+        resetTime: Date.now() + this.resetInterval,
+        lastUsed: 0
+      });
     });
   }
 
-  private getNextAvailableKey(): string {
+  private getNextAvailableKey(): { key: string; index: number } {
     const now = Date.now();
     
-    // Reset counters for keys whose reset time has passed
+    // Reset usage counters for keys whose reset time has passed
     this.keyUsage.forEach((usage, key) => {
       if (now >= usage.resetTime) {
-        this.keyUsage.set(key, { count: 0, resetTime: now + this.resetInterval });
+        this.keyUsage.set(key, { 
+          count: 0, 
+          resetTime: now + this.resetInterval,
+          lastUsed: usage.lastUsed
+        });
       }
     });
     
-    // Find a key that hasn't hit the rate limit
+    // Strategy 1: Find a key that hasn't hit the rate limit and hasn't been used recently
     for (let i = 0; i < this.apiKeys.length; i++) {
       const keyIndex = (this.currentKeyIndex + i) % this.apiKeys.length;
       const key = this.apiKeys[keyIndex];
       const usage = this.keyUsage.get(key)!;
       
-      if (usage.count < this.maxRequestsPerKey) {
+      // Check if key is available (under rate limit and not used recently)
+      const isUnderRateLimit = usage.count < this.maxRequestsPerKey;
+      const hasDelayPassed = (now - usage.lastUsed) >= this.keyRotationDelay;
+      
+      if (isUnderRateLimit && hasDelayPassed) {
         this.currentKeyIndex = keyIndex;
-        return key;
+        console.log(`🔄 Using API key ${keyIndex + 1}/${this.apiKeys.length} (Usage: ${usage.count}/${this.maxRequestsPerKey})`);
+        return { key, index: keyIndex };
       }
     }
     
-    // If all keys are rate limited, use the one with the earliest reset time
-    let earliestResetKey = this.apiKeys[0];
-    let earliestResetTime = this.keyUsage.get(earliestResetKey)!.resetTime;
+    // Strategy 2: If all keys are recently used, find the one with lowest usage
+    let bestKey = this.apiKeys[0];
+    let bestIndex = 0;
+    let lowestUsage = this.keyUsage.get(bestKey)!.count;
     
-    this.keyUsage.forEach((usage, key) => {
-      if (usage.resetTime < earliestResetTime) {
-        earliestResetKey = key;
-        earliestResetTime = usage.resetTime;
+    this.apiKeys.forEach((key, index) => {
+      const usage = this.keyUsage.get(key)!;
+      if (usage.count < lowestUsage) {
+        bestKey = key;
+        bestIndex = index;
+        lowestUsage = usage.count;
       }
     });
     
-    return earliestResetKey;
+    this.currentKeyIndex = bestIndex;
+    console.log(`⚠️ All keys recently used, selecting key ${bestIndex + 1} with lowest usage: ${lowestUsage}`);
+    return { key: bestKey, index: bestIndex };
   }
 
   private incrementKeyUsage(apiKey: string): void {
     const usage = this.keyUsage.get(apiKey);
     if (usage) {
       usage.count++;
+      usage.lastUsed = Date.now();
+      console.log(`📊 API key usage updated: ${usage.count}/${this.maxRequestsPerKey}`);
     }
   }
 
-  private async makeRequest(url: string, options: RequestInit): Promise<Response> {
-    const apiKey = this.getNextAvailableKey();
+  private async makeRequestWithRetry(url: string, options: RequestInit, maxRetries: number = 3): Promise<Response> {
+    let lastError: Error | null = null;
     
-    const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-    
-    try {
-      const response = await fetch(url, { ...options, headers });
-      this.incrementKeyUsage(apiKey);
-      return response;
-    } catch (error) {
-      // If request fails, try with next available key
-      if (this.apiKeys.length > 1) {
-        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
-        const nextApiKey = this.getNextAvailableKey();
-        const nextHeaders = {
-          'Authorization': `Bearer ${nextApiKey}`,
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const { key, index } = this.getNextAvailableKey();
+        
+        const headers = {
+          'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
+          'User-Agent': 'MuzAI-Client/1.0',
           ...options.headers
         };
-        const retryResponse = await fetch(url, { ...options, headers: nextHeaders });
-        this.incrementKeyUsage(nextApiKey);
-        return retryResponse;
+        
+        const response = await fetch(url, { ...options, headers });
+        
+        // Increment usage on successful request
+        this.incrementKeyUsage(key);
+        
+        // Check for rate limiting
+        if (response.status === 429) {
+          console.warn(`⚠️ Rate limited on key ${index + 1}, trying next key...`);
+          // Mark this key as temporarily exhausted
+          const usage = this.keyUsage.get(key)!;
+          usage.count = this.maxRequestsPerKey;
+          continue;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response;
+        
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Request failed on attempt ${attempt + 1}:`, error);
+        
+        // If this is the last attempt, throw the error
+        if (attempt === maxRetries - 1) {
+          break;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
-      throw error;
     }
+    
+    throw lastError || new Error('All retry attempts failed');
+  }
+
+  private async makeRequest(url: string, options: RequestInit): Promise<Response> {
+    return this.makeRequestWithRetry(url, options);
+  }
+
+  // Add method to manually add API keys
+  addApiKey(apiKey: string): void {
+    if (!this.apiKeys.includes(apiKey)) {
+      this.apiKeys.push(apiKey);
+      this.keyUsage.set(apiKey, { 
+        count: 0, 
+        resetTime: Date.now() + this.resetInterval,
+        lastUsed: 0
+      });
+      console.log(`✅ Added new API key. Total keys: ${this.apiKeys.length}`);
+    }
+  }
+
+  // Add method to remove API keys
+  removeApiKey(apiKey: string): void {
+    const index = this.apiKeys.indexOf(apiKey);
+    if (index > -1) {
+      this.apiKeys.splice(index, 1);
+      this.keyUsage.delete(apiKey);
+      console.log(`🗑️ Removed API key. Total keys: ${this.apiKeys.length}`);
+    }
+  }
+
+  // Get current API key statistics
+  getApiKeyStats(): Array<{ 
+    index: number; 
+    usage: number; 
+    maxUsage: number; 
+    resetTime: Date; 
+    isActive: boolean;
+    lastUsed: Date | null;
+  }> {
+    return this.apiKeys.map((key, index) => {
+      const usage = this.keyUsage.get(key)!;
+      return {
+        index: index + 1,
+        usage: usage.count,
+        maxUsage: this.maxRequestsPerKey,
+        resetTime: new Date(usage.resetTime),
+        isActive: usage.count < this.maxRequestsPerKey,
+        lastUsed: usage.lastUsed > 0 ? new Date(usage.lastUsed) : null
+      };
+    });
+  }
+
+  // Get total available generations across all keys
+  getTotalAvailableGenerations(): number {
+    const now = Date.now();
+    let total = 0;
+    
+    this.keyUsage.forEach((usage) => {
+      // Reset if time has passed
+      if (now >= usage.resetTime) {
+        total += this.maxRequestsPerKey;
+      } else {
+        total += Math.max(0, this.maxRequestsPerKey - usage.count);
+      }
+    });
+    
+    return total;
   }
   
   async generateMusic(prompt: string, options: GenerationOptions = {}): Promise<string> {
+    console.log(`🎵 Starting music generation with prompt: "${prompt.substring(0, 50)}..."`);
+    
     const response = await this.makeRequest(`${this.baseUrl}/generate`, {
       method: 'POST',
       body: JSON.stringify({
@@ -104,7 +248,7 @@ class SunoAPI {
         style: options.style,
         title: options.title,
         negativeTags: options.negativeTags,
-        callBackUrl: options.callBackUrl || 'https://your-app.com/callback'
+        callBackUrl: 'https://muzai-callback.netlify.app/callback'
       })
     });
     
@@ -113,6 +257,7 @@ class SunoAPI {
       throw new Error(`Generation failed: ${result.msg}`);
     }
     
+    console.log(`✅ Generation started successfully. Task ID: ${result.data.taskId}`);
     return result.data.taskId!;
   }
   
@@ -127,7 +272,7 @@ class SunoAPI {
         style: options.style,
         title: options.title,
         continueAt: options.continueAt,
-        callBackUrl: options.callBackUrl || 'https://your-app.com/callback'
+        callBackUrl: 'https://muzai-callback.netlify.app/callback'
       })
     });
     
@@ -144,7 +289,7 @@ class SunoAPI {
       method: 'POST',
       body: JSON.stringify({
         prompt,
-        callBackUrl
+        callBackUrl: callBackUrl || 'https://muzai-callback.netlify.app/callback'
       })
     });
     
@@ -158,6 +303,7 @@ class SunoAPI {
   
   async waitForCompletion(taskId: string, maxWaitTime: number = 600000): Promise<any> {
     const startTime = Date.now();
+    console.log(`⏳ Waiting for completion of task: ${taskId}`);
     
     while (Date.now() - startTime < maxWaitTime) {
       const status = await this.getTaskStatus(taskId);
@@ -168,7 +314,7 @@ class SunoAPI {
         throw new Error(`Generation failed: ${status.errorMessage || status.status}`);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise(resolve => setTimeout(resolve, 8000)); // Check every 8 seconds
     }
     
     throw new Error('Generation timeout');
@@ -181,19 +327,6 @@ class SunoAPI {
     
     const result: KieAIResponse = await response.json();
     return result.data;
-  }
-
-  // Get current API key usage statistics
-  getUsageStats(): { key: string; usage: number; maxUsage: number; resetTime: Date }[] {
-    return this.apiKeys.map(key => {
-      const usage = this.keyUsage.get(key)!;
-      return {
-        key: key.substring(0, 8) + '...',
-        usage: usage.count,
-        maxUsage: this.maxRequestsPerKey,
-        resetTime: new Date(usage.resetTime)
-      };
-    });
   }
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '../lib/supabase';
+import SunoAPI from '../services/kieAI';
 
 interface UserUsage {
   current: number;
@@ -8,6 +9,15 @@ interface UserUsage {
   planType: 'free' | 'premium';
   resetDate: string;
   remaining: number;
+  apiKeyStats?: Array<{
+    index: number;
+    usage: number;
+    maxUsage: number;
+    resetTime: Date;
+    isActive: boolean;
+    lastUsed: Date | null;
+  }>;
+  totalAvailableGenerations?: number;
 }
 
 export function useUserUsage() {
@@ -15,6 +25,7 @@ export function useUserUsage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const [sunoAPI] = useState(() => new SunoAPI());
 
   useEffect(() => {
     if (user) {
@@ -24,6 +35,22 @@ export function useUserUsage() {
     }
   }, [user]);
 
+  // Update usage with API key statistics
+  const updateUsageWithApiStats = (baseUsage: UserUsage): UserUsage => {
+    try {
+      const apiKeyStats = sunoAPI.getApiKeyStats();
+      const totalAvailableGenerations = sunoAPI.getTotalAvailableGenerations();
+      
+      return {
+        ...baseUsage,
+        apiKeyStats,
+        totalAvailableGenerations
+      };
+    } catch (error) {
+      console.warn('Failed to get API key stats:', error);
+      return baseUsage;
+    }
+  };
   const loadUsage = async () => {
     if (!user) return;
 
@@ -32,13 +59,14 @@ export function useUserUsage() {
       console.warn('Supabase not configured - using default usage data');
       setError('Supabase configuration missing');
       // Set default usage on configuration error
-      setUsage({
+      const defaultUsage = {
         current: 0,
         limit: 1,
         planType: 'free',
         resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         remaining: 1
-      });
+      };
+      setUsage(updateUsageWithApiStats(defaultUsage));
       return;
     }
 
@@ -74,7 +102,7 @@ export function useUserUsage() {
       const result = await response.json();
       
       if (result.success) {
-        setUsage(result.usage);
+        setUsage(updateUsageWithApiStats(result.usage));
       } else {
         throw new Error(result.error || 'Failed to load usage');
       }
@@ -96,13 +124,14 @@ export function useUserUsage() {
       }
       
       // Set default usage on error
-      setUsage({
+      const defaultUsage = {
         current: 0,
         limit: 1,
         planType: 'free',
         resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         remaining: 1
-      });
+      };
+      setUsage(updateUsageWithApiStats(defaultUsage));
     } finally {
       setLoading(false);
     }
@@ -121,29 +150,14 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-music`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.access_token || (await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, options }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      // Use the SunoAPI directly with multiple key rotation
+      console.log('🎵 Starting music generation with multiple API keys...');
+      const taskId = await sunoAPI.generateMusic(prompt, options);
       
-      if (result.success) {
-        // Update usage after successful generation
-        await loadUsage();
-        return result.taskId;
-      } else {
-        throw new Error(result.error || 'Generation failed');
-      }
+      // Update usage after successful generation
+      await loadUsage();
+      return taskId;
+      
     } catch (err: any) {
       console.error('Error generating music:', err);
       const errorMessage = err.message || 'Music generation failed';
@@ -160,31 +174,15 @@ export function useUserUsage() {
     }
 
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-generation`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.access_token || (await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ taskId }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      // Use the SunoAPI directly for status checking
+      const statusData = await sunoAPI.getTaskStatus(taskId);
       
-      if (result.success) {
-        return {
-          status: result.status,
-          tracks: result.data || [],
-          error: result.error
-        };
-      } else {
-        throw new Error(result.error || 'Status check failed');
-      }
+      return {
+        status: statusData.status,
+        tracks: statusData.response?.sunoData || [],
+        error: statusData.errorMessage
+      };
+      
     } catch (err: any) {
       console.error('Error checking status:', err);
       throw err;
@@ -197,6 +195,7 @@ export function useUserUsage() {
     error,
     loadUsage,
     generateMusic,
-    checkGenerationStatus
+    checkGenerationStatus,
+    sunoAPI // Expose API instance for advanced usage
   };
 }

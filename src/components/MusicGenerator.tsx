@@ -4,6 +4,7 @@ import { GenerationOptions, Track } from '../types/music';
 import SaveTrackModal from './SaveTrackModal';
 import { useSavedTracks } from '../hooks/useSavedTracks';
 import { useUserUsage } from '../hooks/useUserUsage';
+import ApiKeyStatsModal from './ApiKeyStatsModal';
 
 interface MusicGeneratorProps {
   onTrackGenerated: (track: Track) => void;
@@ -31,8 +32,9 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
+  const [showApiStats, setShowApiStats] = useState(false);
   const { saveTrack } = useSavedTracks();
-  const { generateMusic, checkGenerationStatus } = useUserUsage();
+  const { generateMusic, checkGenerationStatus, usage } = useUserUsage();
 
   const downloadAudio = async (url: string, title: string) => {
     try {
@@ -86,6 +88,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
     setError('');
     
     try {
+      console.log('🎵 Starting generation with multiple API key rotation...');
       const taskId = await generateMusic(prompt, options);
 
       // Poll for completion
@@ -184,6 +187,19 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">AI Music Generator</h2>
         <p className="text-gray-400 text-sm md:text-base">Create unique music tracks with artificial intelligence</p>
+        
+        {/* API Key Stats Button */}
+        {usage?.apiKeyStats && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowApiStats(true)}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors flex items-center space-x-2 mx-auto"
+            >
+              <Zap className="w-4 h-4" />
+              <span>API Keys: {usage.apiKeyStats.filter(k => k.isActive).length}/{usage.apiKeyStats.length} Active</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -371,6 +387,13 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
         onClose={() => setShowSaveModal(false)}
         track={trackToSave}
         onSave={handleSaveConfirm}
+      />
+
+      <ApiKeyStatsModal
+        isOpen={showApiStats}
+        onClose={() => setShowApiStats(false)}
+        apiKeyStats={usage?.apiKeyStats || []}
+        totalAvailableGenerations={usage?.totalAvailableGenerations || 0}
       />
     </div>
   );
