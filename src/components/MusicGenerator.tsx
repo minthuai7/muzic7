@@ -95,43 +95,55 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || !apiKeys.trim()) {
-      alert('Please enter both a prompt and API key(s)');
+    if (!prompt.trim()) {
+      alert('Please enter a music prompt');
       return;
     }
+
     setIsGenerating(true);
     try {
-      const keyArray = apiKeys.split(/[,\n]/).map(key => key.trim()).filter(key => key.length > 0);
-      const api = new SunoAPI(keyArray);
-      const taskId = await api.generateMusic(prompt, options);
+      const taskId = await generateMusic(prompt, options);
 
-      setTimeout(async () => {
+      // Poll for completion
+      const pollForCompletion = async () => {
         try {
-          const result = await api.waitForCompletion(taskId);
-          const tracks: Track[] = result.sunoData.map((track: any) => ({
-            id: track.id,
-            title: track.title || options.title || 'Generated Track',
-            artist: 'AI Generated',
-            duration: track.duration || 180,
-            audioUrl: track.audioUrl,
-            imageUrl: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
-            tags: track.tags,
-            isGenerated: true,
-            taskId,
-            prompt
-          }));
+          const result = await checkGenerationStatus(taskId);
+          
+          if (result.status === 'SUCCESS' && result.tracks.length > 0) {
+            const tracks: Track[] = result.tracks.map((track: any) => ({
+              id: track.id,
+              title: track.title || options.title || 'Generated Track',
+              artist: 'AI Generated',
+              duration: track.duration || 180,
+              audioUrl: track.audioUrl,
+              imageUrl: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
+              tags: track.tags,
+              isGenerated: true,
+              taskId,
+              prompt
+            }));
 
-          setGeneratedTracks(prev => [...prev, ...tracks]);
-          tracks.forEach(track => onTrackGenerated(track));
-          setUsageStats(api.getUsageStats());
-          setIsGenerating(false);
+            setGeneratedTracks(prev => [...prev, ...tracks]);
+            tracks.forEach(track => onTrackGenerated(track));
+            setIsGenerating(false);
+          } else if (result.status?.includes('FAILED') || result.error) {
+            throw new Error(result.error || 'Generation failed');
+          } else {
+            // Still processing, check again in 10 seconds
+            setTimeout(pollForCompletion, 10000);
+          }
         } catch (error) {
           console.error('Generation failed:', error);
+          alert(`Generation failed: ${error.message}`);
           setIsGenerating(false);
         }
-      }, 5000);
+      };
+
+      // Start polling after 10 seconds
+      setTimeout(pollForCompletion, 10000);
     } catch (error) {
       console.error('Generation failed:', error);
+      alert(`Generation failed: ${error.message}`);
       setIsGenerating(false);
     }
   };
@@ -157,91 +169,6 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">AI Music Generator</h2>
         <p className="text-gray-400 text-sm md:text-base">Create unique music tracks with artificial intelligence</p>
-      </div>
-
-      {/* API Keys Input */}
-      <div className="bg-white/5 rounded-2xl p-4 md:p-6 border border-white/10">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-300">
-            Music AI API Keys
-          </label>
-          {usageStats.length > 0 && (
-            <button
-              onClick={() => setShowUsageStats(!showUsageStats)}
-              className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              {showUsageStats ? 'Hide' : 'Show'} Usage Stats
-            </button>
-          )}
-        </div>
-        <textarea
-          value={apiKeys}
-          onChange={(e) => setApiKeys(e.target.value)}
-          placeholder="Enter your Music AI keys (Music AI Key များကို Infinity Tech Page ကနေဝယ်ယူနိုင်ပါတယ်)"
-          className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-20"
-        />
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-xs text-gray-500">
-            💡 Get Music AI Keys from Infinity Tech Page
-          </p>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleSaveApiKeys}
-              disabled={!apiKeys.trim()}
-              className="px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
-            >
-              <Save className="w-4 h-4" />
-              <span>Save</span>
-            </button>
-            <button
-              onClick={handleResetApiKeys}
-              className="px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Reset</span>
-            </button>
-            <button
-              onClick={() => window.open('https://m.me/infinitytechmyanmar', '_blank')}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all flex items-center space-x-2 text-sm font-medium shadow-lg hover:shadow-xl"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Buy Music AI Key</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Save Message */}
-        {saveMessage && (
-          <div className="mt-3 p-3 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-400" />
-            <p className="text-green-400 text-sm">{saveMessage}</p>
-          </div>
-        )}
-
-        {/* Usage Stats */}
-        {showUsageStats && usageStats.length > 0 && (
-          <div className="mt-4 p-3 bg-white/5 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-300 mb-2">API Key Usage</h4>
-            <div className="space-y-2">
-              {usageStats.map((stat, index) => (
-                <div key={index} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{stat.key}</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-16 bg-gray-700 rounded-full h-1">
-                      <div
-                        className="bg-green-500 h-1 rounded-full transition-all"
-                        style={{ width: `${(stat.usage / stat.maxUsage) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-gray-400 min-w-[40px]">
-                      {stat.usage}/{stat.maxUsage}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Generation Form */}
@@ -318,7 +245,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
           </div>
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || !prompt.trim() || !apiKeys.trim()}
+            disabled={isGenerating || !prompt.trim()}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-4 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
           >
             {isGenerating ? (

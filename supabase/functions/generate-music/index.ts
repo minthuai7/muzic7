@@ -86,12 +86,10 @@ serve(async (req) => {
       )
     }
 
-    // Get available API key
-    const { data: apiKey, error: keyError } = await supabaseClient
-      .rpc('get_available_api_key')
-
-    if (keyError || !apiKey) {
-      throw new Error('No available API keys')
+    // Get Music AI API key from environment
+    const apiKey = Deno.env.get('MUSIC_AI_API_KEY')
+    if (!apiKey) {
+      throw new Error('Music AI API key not configured')
     }
 
     // Parse request body
