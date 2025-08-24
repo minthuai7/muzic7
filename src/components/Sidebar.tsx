@@ -35,8 +35,8 @@ export default function Sidebar({ currentView, onViewChange, user }: SidebarProp
   }
 
   return (
-    <div className="w-16 md:w-64 bg-black/40 backdrop-blur-md border-r border-white/10 p-3 md:p-6">
-      <div className="space-y-2">
+    <div className="w-16 md:w-64 bg-black/40 backdrop-blur-md border-r border-white/10 p-3 md:p-6 flex flex-col h-full">
+      <div className="space-y-2 flex-1 overflow-y-auto overflow-x-hidden">
         {menuItems.map((item) => {
           const isDisabled = item.requireAuth && !user;
           
@@ -67,7 +67,7 @@ export default function Sidebar({ currentView, onViewChange, user }: SidebarProp
         })}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-white/10 hidden md:block">
+      <div className="mt-8 pt-6 border-t border-white/10 hidden md:block flex-shrink-0">
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 hidden md:block">
           {user ? 'Your Playlists' : 'Playlists (Sign in required)'}
         </h3>
