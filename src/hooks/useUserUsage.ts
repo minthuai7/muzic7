@@ -58,36 +58,64 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
-      // Check if Supabase URL is configured
-      if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
-        throw new Error('Supabase not configured - please set VITE_SUPABASE_URL');
+      // Check if Supabase is properly configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      console.log('Supabase configuration check:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+        urlValue: supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'missing',
+        isPlaceholder: supabaseUrl === 'your_supabase_project_url'
+      });
+      
+      if (!supabaseUrl || !supabaseKey || 
+          supabaseUrl === 'your_supabase_project_url' || 
+          supabaseKey === 'your_supabase_anon_key') {
+        console.error('Supabase not properly configured');
+        throw new Error('Supabase not configured - please check your .env file');
       }
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-usage`;
+      const apiUrl = `${supabaseUrl}/functions/v1/get-user-usage`;
       
       console.log('Fetching usage from:', apiUrl);
       
       // Check if we have a valid session token
       const session = await supabase.auth.getSession();
       if (!session.data.session?.access_token) {
+        console.error('No valid session token found');
         throw new Error('No valid session token');
       }
 
       console.log('Making request with token...');
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.data.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          // Add timeout and other fetch options
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        });
+      } catch (fetchError) {
+        console.error('Fetch request failed:', fetchError);
+        if (fetchError.name === 'TimeoutError') {
+          throw new Error('Request timeout - Supabase server may be unreachable');
+        } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+          throw new Error('Cannot connect to Supabase - please check your VITE_SUPABASE_URL in .env file');
+        }
+        throw fetchError;
+      }
 
       console.log('Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Response error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error(`Supabase API error (${response.status}): ${errorText}`);
       }
 
       const result = await response.json();
@@ -104,14 +132,18 @@ export function useUserUsage() {
       console.error('Full error:', err);
       
       // Handle different types of fetch errors
-      if (err.message?.includes('Supabase not configured')) {
-        setError('Supabase not configured. Please set up your environment variables.');
+      if (err.message?.includes('Supabase not configured') || err.message?.includes('check your .env file')) {
+        setError('Supabase not configured. Please check your .env file and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+      } else if (err.message?.includes('Cannot connect to Supabase')) {
+        setError('Cannot connect to Supabase. Please verify your VITE_SUPABASE_URL is correct and reachable.');
+      } else if (err.message?.includes('Request timeout')) {
+        setError('Connection timeout. Supabase server may be unreachable or slow.');
       } else if (err.message?.includes('No valid session token')) {
         setError('Authentication required. Please sign in again.');
       } else if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-        setError('Unable to connect to server. Please check your internet connection.');
-      } else if (err.message.includes('HTTP error')) {
-        setError('Server error. Please try again later.');
+        setError('Unable to connect to Supabase. Please check your .env configuration and internet connection.');
+      } else if (err.message.includes('Supabase API error')) {
+        setError('Supabase server error. Please try again later.');
       } else {
         setError(`Failed to load usage data: ${err.message}`);
       }
