@@ -50,53 +50,39 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header')
+      return new Response(
+        JSON.stringify({ success: false, error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
-      throw new Error('Invalid authentication')
-    }
-
-    // Check user usage limits
-    const { data: usageResult, error: usageError } = await supabaseClient
-      .rpc('check_and_increment_usage', { p_user_id: user.id })
-
-    if (usageError) {
-      throw new Error('Failed to check usage limits')
-    }
-
-    if (!usageResult.success) {
       return new Response(
-        JSON.stringify({
-          error: usageResult.message,
-          usage: {
-            current: usageResult.current_usage,
-            limit: usageResult.monthly_limit,
-            planType: usageResult.plan_type,
-            resetDate: usageResult.reset_date
-          }
-        }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Get Music AI API key from environment
     const apiKey = Deno.env.get('MUSIC_AI_API_KEY')
     if (!apiKey) {
-      throw new Error('Music AI API key not configured')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Music AI API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Parse request body
     const { prompt, options = {} }: GenerateRequest = await req.json()
 
     if (!prompt?.trim()) {
-      throw new Error('Prompt is required')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Prompt is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Make request to Kie AI
@@ -121,19 +107,17 @@ serve(async (req) => {
     const result: KieAIResponse = await kieResponse.json()
 
     if (result.code !== 200) {
-      throw new Error(`Generation failed: ${result.msg}`)
+      return new Response(
+        JSON.stringify({ success: false, error: `Generation failed: ${result.msg}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         taskId: result.data.taskId,
-        usage: {
-          current: usageResult.current_usage,
-          limit: usageResult.monthly_limit,
-          planType: usageResult.plan_type,
-          resetDate: usageResult.reset_date
-        }
+        message: 'Generation started successfully'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -145,7 +129,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error'
+        success: false, error: error.message || 'Internal server error'
       }),
       {
         status: 500,

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Sparkles, Wand2, Music, Download, Play, Loader2, Save, ShoppingCart, RotateCcw, CheckCircle } from 'lucide-react';
 import { GenerationOptions, Track } from '../types/music';
-import SunoAPI from '../services/kieAI';
 import SaveTrackModal from './SaveTrackModal';
 import { useSavedTracks } from '../hooks/useSavedTracks';
+import { useUserUsage } from '../hooks/useUserUsage';
 
 interface MusicGeneratorProps {
   onTrackGenerated: (track: Track) => void;
@@ -26,32 +26,13 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<Track[]>([]);
-  const [apiKeys, setApiKeys] = useState(() => {
-    return localStorage.getItem('musicai_api_keys') || '';
-  });
-  const [showUsageStats, setShowUsageStats] = useState(false);
-  const [usageStats, setUsageStats] = useState<any[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [trackToSave, setTrackToSave] = useState<Track | null>(null);
   const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
+  const [error, setError] = useState('');
   const { saveTrack } = useSavedTracks();
-
-  const handleSaveApiKeys = () => {
-    localStorage.setItem('musicai_api_keys', apiKeys);
-    setSaveMessage('Music AI API keys saved successfully!');
-    setTimeout(() => setSaveMessage(''), 3000);
-  };
-
-  const handleResetApiKeys = () => {
-    if (confirm('Are you sure you want to reset all API keys? This action cannot be undone.')) {
-      setApiKeys('');
-      localStorage.removeItem('musicai_api_keys');
-      setUsageStats([]);
-      setSaveMessage('Music AI API keys have been reset.');
-      setTimeout(() => setSaveMessage(''), 3000);
-    }
-  };
+  const { generateMusic, checkGenerationStatus } = useUserUsage();
 
   const downloadAudio = async (url: string, title: string) => {
     try {
@@ -96,11 +77,14 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      alert('Please enter a music prompt');
+      setError('Please enter a music prompt');
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     setIsGenerating(true);
+    setError('');
+    
     try {
       const taskId = await generateMusic(prompt, options);
 
@@ -126,6 +110,8 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
             setGeneratedTracks(prev => [...prev, ...tracks]);
             tracks.forEach(track => onTrackGenerated(track));
             setIsGenerating(false);
+            setSaveMessage('Music generated successfully!');
+            setTimeout(() => setSaveMessage(''), 3000);
           } else if (result.status?.includes('FAILED') || result.error) {
             throw new Error(result.error || 'Generation failed');
           } else {
@@ -134,7 +120,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
           }
         } catch (error) {
           console.error('Generation failed:', error);
-          alert(`Generation failed: ${error.message}`);
+          setError(`Generation failed: ${error.message}`);
           setIsGenerating(false);
         }
       };
@@ -143,7 +129,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       setTimeout(pollForCompletion, 10000);
     } catch (error) {
       console.error('Generation failed:', error);
-      alert(`Generation failed: ${error.message}`);
+      setError(`Generation failed: ${error.message}`);
       setIsGenerating(false);
     }
   };
@@ -170,6 +156,22 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">AI Music Generator</h2>
         <p className="text-gray-400 text-sm md:text-base">Create unique music tracks with artificial intelligence</p>
       </div>
+
+      {/* Messages */}
+      {saveMessage && (
+        <div className="mb-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+          <p className="text-green-400 text-sm flex items-center">
+            <CheckCircle className="w-4 h-4 mr-2" />
+            {saveMessage}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
 
       {/* Generation Form */}
       <div className="bg-white/5 rounded-2xl p-4 md:p-6 border border-white/10">
@@ -293,6 +295,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                 <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
                   <button
                     onClick={() => onPlayTrack(track)}
+                    title="Play track"
                     className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                   >
                     <Play className="w-4 h-4 text-white" />
@@ -300,6 +303,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   <button
                     onClick={() => handleDownload(track.audioUrl, track.title, track.id)}
                     disabled={downloadingTrackId === track.id}
+                    title="Download track"
                     className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
                   >
                     {downloadingTrackId === track.id ? (
@@ -310,6 +314,7 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
                   </button>
                   <button
                     onClick={() => handleSaveTrack(track)}
+                    title="Save track"
                     className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                   >
                     <Save className="w-4 h-4 text-white" />

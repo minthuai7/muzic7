@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
 interface KieAIStatusResponse {
@@ -31,11 +31,22 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url)
-    const taskId = url.searchParams.get('taskId')
+    // Parse request body for POST requests
+    let taskId: string | null = null;
+    
+    if (req.method === 'POST') {
+      const body = await req.json()
+      taskId = body.taskId
+    } else {
+      const url = new URL(req.url)
+      taskId = url.searchParams.get('taskId')
+    }
 
     if (!taskId) {
-      throw new Error('Task ID is required')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Task ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const supabaseClient = createClient(
@@ -46,20 +57,29 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header')
+      return new Response(
+        JSON.stringify({ success: false, error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
-      throw new Error('Invalid authentication')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Get Music AI API key from environment
     const apiKey = Deno.env.get('MUSIC_AI_API_KEY')
     if (!apiKey) {
-      throw new Error('Music AI API key not configured')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Music AI API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Check generation status
@@ -93,7 +113,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error'
+        success: false, error: error.message || 'Internal server error'
       }),
       {
         status: 500,

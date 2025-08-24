@@ -64,7 +64,8 @@ export function useUserUsage() {
       const { data, error: generateError } = await supabase.functions.invoke('generate-music', {
         body: { prompt, options },
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -72,7 +73,9 @@ export function useUserUsage() {
 
       if (data.success) {
         // Update usage after successful generation
-        setUsage(data.usage);
+        if (data.usage) {
+          setUsage(data.usage);
+        }
         return data.taskId;
       } else {
         throw new Error(data.error || 'Generation failed');
@@ -95,7 +98,8 @@ export function useUserUsage() {
       const { data, error: checkError } = await supabase.functions.invoke('check-generation', {
         body: { taskId },
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -104,7 +108,7 @@ export function useUserUsage() {
       if (data.success) {
         return {
           status: data.status,
-          tracks: data.data,
+          tracks: data.data || [],
           error: data.error
         };
       } else {
