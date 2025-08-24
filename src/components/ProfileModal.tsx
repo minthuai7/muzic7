@@ -166,7 +166,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-modal-title"
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
     >
       {/* Backdrop */}
       <div
@@ -176,9 +176,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       />
       
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl max-h-[95vh] bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-4xl mx-auto my-8 bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-4">
+        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl">
@@ -202,7 +202,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(95vh-80px)] p-4 sm:p-6">
+        <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
           {/* Status Messages */}
           {message && (
             <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-xl">
@@ -250,19 +250,19 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">{usage.current}</p>
+                      <p className="text-lg font-bold text-white">{usage.current}</p>
                       <p className="text-xs text-gray-400">Used</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">{usage.remaining}</p>
+                      <p className="text-lg font-bold text-white">{usage.remaining}</p>
                       <p className="text-xs text-gray-400">Left</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">{usage.limit}</p>
+                      <p className="text-lg font-bold text-white">{usage.limit}</p>
                       <p className="text-xs text-gray-400">Total</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">0</p>
+                      <p className="text-lg font-bold text-white">0</p>
                       <p className="text-xs text-gray-400">Tracks</p>
                     </div>
                   </div>
@@ -326,12 +326,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <div className="space-y-4">
                   {/* Email (Read-only) */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="email">
                       Email Address
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="email"
                         type="email"
                         value={user?.email || ''}
                         disabled
@@ -343,12 +344,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
                   {/* Username */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="username">
                       Username
                     </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="username"
                         type="text"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -360,12 +362,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
                   {/* Display Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="displayName">
                       Display Name
                     </label>
                     <div className="relative">
                       <Star className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="displayName"
                         type="text"
                         value={formData.display_name}
                         onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
@@ -377,12 +380,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
                   {/* Bio */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="bio">
                       Bio
                     </label>
                     <div className="relative">
                       <Music className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                       <textarea
+                        id="bio"
                         value={formData.bio}
                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         placeholder="Tell the community about yourself and your music..."
@@ -399,12 +403,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
                   {/* Avatar URL */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="avatarUrl">
                       Avatar URL
                     </label>
                     <div className="relative">
                       <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="avatarUrl"
                         type="url"
                         value={formData.avatar_url}
                         onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
@@ -454,7 +459,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
         {/* Footer Actions */}
         {!loading && (
-          <div className="sticky bottom-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 backdrop-blur-md border-t border-white/10 p-4 sm:p-6">
+          <div className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 backdrop-blur-md border-t border-white/10 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onClose}

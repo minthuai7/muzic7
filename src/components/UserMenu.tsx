@@ -66,7 +66,7 @@ export default function UserMenu() {
       />
       
       {/* Dropdown Panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-gradient-to-br from-gray-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl">
+      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-gradient-to-br from-gray-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <h2 className="text-xl font-bold text-white">Account</h2>
@@ -138,7 +138,7 @@ export default function UserMenu() {
         </div>
 
         {/* Menu Items */}
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2 flex-1 overflow-y-auto">
           <button 
             onClick={handleProfileClick}
             className="w-full flex items-center space-x-4 p-4 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all group"
@@ -198,7 +198,7 @@ export default function UserMenu() {
         </div>
 
         {/* Sign Out Button */}
-        <div className="p-4 border-t border-white/10 mt-auto">
+        <div className="p-4 border-t border-white/10 mt-auto flex-shrink-0">
           <button
             onClick={handleSignOut}
             className="w-full flex items-center space-x-4 p-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all group"

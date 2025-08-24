@@ -69,7 +69,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-modal-title"
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
     >
       {/* Backdrop */}
       <div
@@ -79,9 +79,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       />
       
       {/* Modal Container */}
-      <div className="relative w-full max-w-4xl max-h-[95vh] bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-6xl mx-auto my-8 bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-blue-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-4">
+        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl">
@@ -105,8 +105,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(95vh-80px)] p-4 sm:p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
               {/* Subscription Section */}
@@ -132,15 +132,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-white">{usage.current}</p>
+                      <p className="text-lg sm:text-xl font-bold text-white">{usage.current}</p>
                       <p className="text-xs text-gray-400">Used</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-white">{usage.remaining}</p>
+                      <p className="text-lg sm:text-xl font-bold text-white">{usage.remaining}</p>
                       <p className="text-xs text-gray-400">Left</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-3 text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-white">{usage.limit}</p>
+                      <p className="text-lg sm:text-xl font-bold text-white">{usage.limit}</p>
                       <p className="text-xs text-gray-400">Total</p>
                     </div>
                   </div>
