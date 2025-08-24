@@ -58,6 +58,23 @@ function App() {
     setGeneratedTracks(prev => [newTrack, ...prev]);
   };
 
+  // Listen for navigation events
+  React.useEffect(() => {
+    const handleNavigateToPackages = () => setCurrentView('packages');
+    const handleNavigateToGenerator = () => setCurrentView('generator');
+    const handleNavigateToMyMusic = () => setCurrentView('mymusic');
+    
+    window.addEventListener('navigate-to-packages', handleNavigateToPackages);
+    window.addEventListener('navigate-to-generator', handleNavigateToGenerator);
+    window.addEventListener('navigate-to-mymusic', handleNavigateToMyMusic);
+    
+    return () => {
+      window.removeEventListener('navigate-to-packages', handleNavigateToPackages);
+      window.removeEventListener('navigate-to-generator', handleNavigateToGenerator);
+      window.removeEventListener('navigate-to-mymusic', handleNavigateToMyMusic);
+    };
+  }, []);
+
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
