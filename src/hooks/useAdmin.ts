@@ -185,3 +185,5 @@ export function useAdmin() {
     getOrderStats
   };
 }
+
+export { useAdmin }
