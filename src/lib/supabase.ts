@@ -1,24 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = (() => {
-  if (!supabaseUrl || !supabaseAnonKey || 
-      supabaseUrl === 'your_supabase_project_url' || 
-      supabaseAnonKey === 'your_supabase_anon_key' ||
-      supabaseUrl === 'https://your-project-ref.supabase.co' ||
-      supabaseAnonKey === 'your-anon-key-here') {
-    console.warn('Supabase not configured. Please click "Connect to Supabase" button to set up your project.');
-    // Create a dummy client that won't cause URL errors
-    return createClient('https://dummy.supabase.co', 'dummy-key');
-  } else {
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
   }
-})();
+});

@@ -1,3 +1,6 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -33,12 +36,49 @@ interface KieAIResponse {
   }
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Get Music AI API key from environment
+    const apiKey = Deno.env.get('MUSIC_AI_API_KEY')
+    if (!apiKey) {
+      console.error('MUSIC_AI_API_KEY environment variable not set')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Music AI API key not configured. Please set MUSIC_AI_API_KEY in Supabase Edge Function environment variables.' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Parse request body
     const { prompt, options = {} }: GenerateRequest = await req.json()
 
@@ -46,19 +86,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: 'Prompt is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Get Music AI API key from environment - use the hardcoded key as fallback
-    const apiKey = Deno.env.get('MUSIC_AI_API_KEY') || '4f52e3f37a67bb5aed649a471e9989b9'
-    
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Music AI API key not configured' 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -76,7 +103,8 @@ Deno.serve(async (req) => {
         model: options.model || 'V3_5',
         style: options.style || '',
         title: options.title || '',
-        negativeTags: options.negativeTags || ''
+        negativeTags: options.negativeTags || '',
+        callBackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/music-callback`
       })
     })
 
@@ -110,4 +138,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      }
+    )
+  }
+})
