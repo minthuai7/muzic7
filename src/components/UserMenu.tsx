@@ -47,12 +47,11 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <>
+        <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-[9999]">
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 -z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-[9999]">
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-medium">
@@ -99,7 +98,6 @@ export default function UserMenu() {
               </button>
             </div>
           </div>
-        </>
       )}
 
       <ProfileModal
