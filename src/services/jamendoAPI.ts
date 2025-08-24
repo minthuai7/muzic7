@@ -43,7 +43,7 @@ class JamendoAPI {
   private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes
 
   constructor(clientId?: string) {
-    this.clientId = clientId || import.meta.env.VITE_JAMENDO_CLIENT_ID || 'c40e3496';
+    this.clientId = clientId || import.meta.env.VITE_JAMENDO_CLIENT_ID || '56d30c95';
   }
 
   private getCacheKey(endpoint: string, params: URLSearchParams): string {
