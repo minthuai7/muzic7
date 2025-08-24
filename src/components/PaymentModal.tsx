@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CreditCard, Banknote, Smartphone, Copy, CheckCircle, Upload, FileText } from 'lucide-react';
+import { X, CreditCard, Banknote, Smartphone, Copy, CheckCircle, Upload, FileText, Image, Loader2 } from 'lucide-react';
 import { PaymentPackage, PaymentOrder } from '../types/payment';
 import { usePayments } from '../hooks/usePayments';
 
@@ -13,7 +13,9 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
   const [step, setStep] = useState<'select' | 'payment' | 'proof' | 'success'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'mobile_money' | 'cash'>('bank_transfer');
   const [currentOrder, setCurrentOrder] = useState<PaymentOrder | null>(null);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [paymentNotes, setPaymentNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const { createOrder, updateOrderPaymentProof, formatMMK } = usePayments();
@@ -30,11 +32,78 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
     setLoading(false);
   };
 
+  const uploadFileToImgur = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('https://api.imgur.com/3/image', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Client-ID 546c25a59c58ad7'
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.data.link;
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    setPaymentProofFile(file);
+    
+    // Auto-upload to get URL
+    setUploadingFile(true);
+    try {
+      const url = await uploadFileToImgur(file);
+      setPaymentProofUrl(url);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Failed to upload image. Please try again.');
+      setPaymentProofFile(null);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleSubmitPaymentProof = async () => {
-    if (!currentOrder || !paymentProofUrl.trim()) return;
+    if (!currentOrder || (!paymentProofUrl.trim() && !paymentProofFile)) return;
 
     setLoading(true);
-    const success = await updateOrderPaymentProof(currentOrder.id, paymentProofUrl, paymentNotes);
+    
+    let finalUrl = paymentProofUrl;
+    
+    // If we have a file but no URL yet, upload it
+    if (paymentProofFile && !paymentProofUrl.trim()) {
+      try {
+        finalUrl = await uploadFileToImgur(paymentProofFile);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Failed to upload image. Please try again.');
+        setLoading(false);
+        return;
+      }
+    }
+    
+    const success = await updateOrderPaymentProof(currentOrder.id, finalUrl, paymentNotes);
     if (success) {
       setStep('success');
     }
@@ -48,7 +117,9 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
   const handleClose = () => {
     setStep('select');
     setCurrentOrder(null);
+    setPaymentProofFile(null);
     setPaymentProofUrl('');
+    setUploadingFile(false);
     setPaymentNotes('');
     onClose();
   };
@@ -261,18 +332,63 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Payment Proof URL
+                    Payment Proof
                   </label>
+                  
+                  {/* File Upload */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/20 border-dashed rounded-lg cursor-pointer bg-white/5 hover:bg-white/10 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          {uploadingFile ? (
+                            <>
+                              <Loader2 className="w-8 h-8 mb-2 text-purple-400 animate-spin" />
+                              <p className="text-sm text-gray-400">Uploading...</p>
+                            </>
+                          ) : paymentProofFile ? (
+                            <>
+                              <CheckCircle className="w-8 h-8 mb-2 text-green-400" />
+                              <p className="text-sm text-green-400 font-medium">{paymentProofFile.name}</p>
+                              <p className="text-xs text-gray-500">File uploaded successfully</p>
+                            </>
+                          ) : (
+                            <>
+                              <Image className="w-8 h-8 mb-2 text-gray-400" />
+                              <p className="text-sm text-gray-400">
+                                <span className="font-semibold">Click to upload</span> payment screenshot
+                              </p>
+                              <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          disabled={uploadingFile}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Alternative URL Input */}
+                  <div className="text-center mb-2">
+                    <span className="text-xs text-gray-500">Or paste image URL directly</span>
+                  </div>
                   <input
                     type="url"
                     value={paymentProofUrl}
-                    onChange={(e) => setPaymentProofUrl(e.target.value)}
+                    onChange={(e) => {
+                      setPaymentProofUrl(e.target.value);
+                      if (e.target.value.trim()) {
+                        setPaymentProofFile(null);
+                      }
+                    }}
                     placeholder="https://example.com/payment-screenshot.jpg"
                     className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    disabled={uploadingFile}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload your screenshot to a service like Imgur or Google Drive and paste the link here
-                  </p>
                 </div>
 
                 <div>
@@ -299,13 +415,13 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
               </button>
               <button
                 onClick={handleSubmitPaymentProof}
-                disabled={loading || !paymentProofUrl.trim()}
+                disabled={loading || uploadingFile || (!paymentProofUrl.trim() && !paymentProofFile)}
                 className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2"
               >
-                {loading ? (
+                {loading || uploadingFile ? (
                   <>
-                    <Upload className="w-4 h-4 animate-pulse" />
-                    <span>Submitting...</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{uploadingFile ? 'Uploading...' : 'Submitting...'}</span>
                   </>
                 ) : (
                   <>
