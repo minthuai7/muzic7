@@ -36,26 +36,58 @@ export function useAuth() {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { data, error };
+    } catch (networkError) {
+      console.error('Network error during sign in:', networkError);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Unable to connect to authentication service. Please check your internet connection and Supabase configuration.',
+          name: 'NetworkError'
+        } 
+      };
+    }
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
-  };
-
-  const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
-    return { data, error };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      return { data, error };
+    } catch (networkError) {
+      console.error('Network error during sign up:', networkError);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Unable to connect to authentication service. Please check your internet connection and Supabase configuration.',
+          name: 'NetworkError'
+        } 
+      };
+    }
   };
 
   return {
-    user,
-    session,
+    try {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (networkError) {
+      console.error('Network error during sign out:', networkError);
+      return { 
+        error: { 
+          message: 'Unable to connect to authentication service.',
+          name: 'NetworkError'
+        } 
+      };
+    }
     loading,
     signUp,
     signIn,
@@ -63,3 +95,16 @@ export function useAuth() {
     resetPassword,
   };
 }
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      return { data, error };
+    } catch (networkError) {
+      console.error('Network error during password reset:', networkError);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Unable to connect to authentication service. Please check your internet connection and Supabase configuration.',
+          name: 'NetworkError'
+        } 
+      };
+    }
