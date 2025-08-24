@@ -214,6 +214,23 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
         {/* Step 2: Payment Instructions */}
         {step === 'payment' && currentOrder && (
           <div className="space-y-6">
+            {/* Myanmar Instructions Header */}
+            <div className="bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl p-4 border border-blue-500/30">
+              <h4 className="text-lg font-semibold text-white mb-2 flex items-center">
+                🇲🇲 Myanmar Payment Instructions | မြန်မာငွေပေးချေမှုလမ်းညွှန်
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-blue-300 font-medium mb-1">English:</p>
+                  <p className="text-gray-300">Follow the payment details below and upload your payment screenshot for verification.</p>
+                </div>
+                <div>
+                  <p className="text-green-300 font-medium mb-1">မြန်မာ:</p>
+                  <p className="text-gray-300">အောက်ပါငွေပေးချေမှုအသေးစိတ်များကိုလိုက်နာပြီး သင့်ငွေပေးချေမှုမှတ်တမ်းဓာတ်ပုံကို အတည်ပြုရန်တင်ပါ။</p>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white/10 rounded-xl p-4 border border-white/20">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-400">Order Reference:</span>
@@ -231,25 +248,45 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                 <span className="text-gray-400">Amount:</span>
                 <span className="text-green-400 font-bold">{formatMMK(currentOrder.amount_mmk)}</span>
               </div>
+              <div className="mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                <p className="text-yellow-300 text-sm">
+                  <strong>📝 Important | အရေးကြီး:</strong>
+                </p>
+                <p className="text-gray-300 text-xs mt-1">
+                  • Include order reference in payment description<br/>
+                  • ငွေပေးချေမှုဖော်ပြချက်တွင် အော်ဒါနံပါတ်ထည့်ပါ
+                </p>
+              </div>
             </div>
 
             {paymentMethod === 'bank_transfer' && (
               <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30">
                 <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
                   <Banknote className="w-5 h-5 mr-2" />
-                  Bank Transfer Details
+                  Bank Transfer Details | ဘဏ်လွှဲငွေအသေးစိတ်
                 </h4>
+                <div className="mb-4 p-3 bg-blue-500/10 rounded-lg">
+                  <p className="text-blue-300 text-sm font-medium mb-2">
+                    🏦 How to transfer | လွှဲပုံလွှဲနည်း:
+                  </p>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <p>• Go to your bank or use mobile banking app</p>
+                    <p>• သင့်ဘဏ်သို့သွားပါ သို့မဟုတ် မိုဘိုင်းဘဏ်အက်ပ်ကိုအသုံးပြုပါ</p>
+                    <p>• Transfer to the account details below</p>
+                    <p>• အောက်ပါအကောင့်အသေးစိတ်များသို့လွှဲပါ</p>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Bank Name:</span>
+                    <span className="text-gray-300">Bank Name | ဘဏ်အမည်:</span>
                     <span className="text-white">KBZ Bank</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Account Name:</span>
+                    <span className="text-gray-300">Account Name | အကောင့်အမည်:</span>
                     <span className="text-white">MuzAI Myanmar</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Account Number:</span>
+                    <span className="text-gray-300">Account Number | အကောင့်နံပါတ်:</span>
                     <div className="flex items-center space-x-2">
                       <span className="text-white font-mono">123-456-789-012</span>
                       <button
@@ -261,6 +298,17 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                     </div>
                   </div>
                 </div>
+                <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                  <p className="text-green-300 text-sm font-medium mb-1">
+                    ✅ After transfer | လွှဲပြီးနောက်:
+                  </p>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <p>• Take screenshot of successful transfer</p>
+                    <p>• လွှဲငွေအောင်မြင်မှုမှတ်တမ်းဓာတ်ပုံရိုက်ပါ</p>
+                    <p>• Upload the screenshot in next step</p>
+                    <p>• နောက်အဆင့်တွင် ဓာတ်ပုံကိုတင်ပါ</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -268,13 +316,24 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
               <div className="bg-green-500/10 rounded-xl p-6 border border-green-500/30">
                 <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
                   <Smartphone className="w-5 h-5 mr-2" />
-                  Mobile Money Details
+                  Mobile Money Details | မိုဘိုင်းငွေအသေးစိတ်
                 </h4>
+                <div className="mb-4 p-3 bg-green-500/10 rounded-lg">
+                  <p className="text-green-300 text-sm font-medium mb-2">
+                    📱 How to send | ပေးပို့ပုံပေးပို့နည်း:
+                  </p>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <p>• Open your mobile money app (KBZPay, WavePay, etc.)</p>
+                    <p>• သင့်မိုဘိုင်းငွေအက်ပ်ကိုဖွင့်ပါ (KBZPay, WavePay, စသည်)</p>
+                    <p>• Send money to the phone numbers below</p>
+                    <p>• အောက်ပါဖုန်းနံပါတ်များသို့ငွေပေးပို့ပါ</p>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <h5 className="text-white font-medium mb-2">KBZPay</h5>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Phone:</span>
+                      <span className="text-gray-300">Phone | ဖုန်း:</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-white font-mono">09-123-456-789</span>
                         <button
@@ -289,7 +348,7 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                   <div>
                     <h5 className="text-white font-medium mb-2">WavePay</h5>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Phone:</span>
+                      <span className="text-gray-300">Phone | ဖုန်း:</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-white font-mono">09-987-654-321</span>
                         <button
@@ -302,20 +361,37 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                     </div>
                   </div>
                 </div>
+                <div className="mt-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                  <p className="text-purple-300 text-sm font-medium mb-1">
+                    ✅ After sending | ပေးပို့ပြီးနောက်:
+                  </p>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <p>• Take screenshot of successful transaction</p>
+                    <p>• အောင်မြင်သောငွေပေးချေမှုမှတ်တမ်းဓာတ်ပုံရိုက်ပါ</p>
+                    <p>• Upload the screenshot in next step</p>
+                    <p>• နောက်အဆင့်တွင် ဓာတ်ပုံကိုတင်ပါ</p>
+                  </div>
+                </div>
               </div>
             )}
 
             <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30">
-              <p className="text-yellow-300 text-sm">
-                <strong>Important:</strong> Please include your order reference "{currentOrder.order_reference}" in the payment description or memo.
+              <p className="text-yellow-300 text-sm mb-2">
+                <strong>⚠️ Very Important | အလွန်အရေးကြီး:</strong>
               </p>
+              <div className="text-xs text-gray-300 space-y-1">
+                <p>• Include order reference: <span className="font-mono text-white">"{currentOrder.order_reference}"</span></p>
+                <p>• အော်ဒါနံပါတ်ထည့်ပါ: <span className="font-mono text-white">"{currentOrder.order_reference}"</span></p>
+                <p>• Put this in payment description/memo/note</p>
+                <p>• ငွေပေးချေမှုဖော်ပြချက်/မှတ်စု/မှတ်ချက်တွင်ထည့်ပါ</p>
+              </div>
             </div>
 
             <button
               onClick={() => setStep('proof')}
               className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all"
             >
-              I've Made the Payment
+              I've Made the Payment | ငွေပေးချေပြီးပါပြီ
             </button>
           </div>
         )}
@@ -324,15 +400,41 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
         {step === 'proof' && (
           <div className="space-y-6">
             <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-              <h4 className="text-lg font-semibold text-white mb-4">Upload Payment Proof</h4>
-              <p className="text-gray-300 text-sm mb-4">
-                Please provide a screenshot or photo of your payment confirmation.
-              </p>
+              <h4 className="text-lg font-semibold text-white mb-4">
+                Upload Payment Proof | ငွေပေးချေမှုအထောက်အထားတင်ပါ
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-blue-300 text-sm font-medium mb-1">English:</p>
+                  <p className="text-gray-300 text-xs">
+                    Please provide a clear screenshot or photo of your payment confirmation from your bank or mobile money app.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-green-300 text-sm font-medium mb-1">မြန်မာ:</p>
+                  <p className="text-gray-300 text-xs">
+                    သင့်ဘဏ် သို့မဟုတ် မိုဘိုင်းငွေအက်ပ်မှ ငွေပေးချေမှုအတည်ပြုချက်၏ ရှင်းလင်းသောဓာတ်ပုံ သို့မဟုတ် မှတ်တမ်းဓာတ်ပုံကို ပေးပါ။
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-blue-500/10 rounded-lg p-3 mb-4 border border-blue-500/30">
+                <p className="text-blue-300 text-sm font-medium mb-2">
+                  📸 What to include in screenshot | ဓာတ်ပုံတွင်ပါဝင်ရမည့်အရာများ:
+                </p>
+                <div className="text-xs text-gray-300 space-y-1">
+                  <p>✅ Transaction amount | ငွေပမာণ</p>
+                  <p>✅ Recipient account/phone | လက်ခံသူအကောင့်/ဖုန်း</p>
+                  <p>✅ Transaction date & time | ငွေပေးချေမှုရက်စွဲနှင့်အချိန်</p>
+                  <p>✅ Transaction ID/Reference | ငွေပေးချေမှုနံပါတ်</p>
+                  <p>✅ Success status | အောင်မြင်မှုအခြေအနေ</p>
+                </div>
+              </div>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Payment Proof
+                    Payment Proof | ငွေပေးချေမှုအထောက်အထား
                   </label>
                   
                   {/* File Upload */}
@@ -355,7 +457,7 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                             <>
                               <Image className="w-8 h-8 mb-2 text-gray-400" />
                               <p className="text-sm text-gray-400">
-                                <span className="font-semibold">Click to upload</span> payment screenshot
+                                <span className="font-semibold">Click to upload</span> payment screenshot | ငွေပေးချေမှုဓာတ်ပုံတင်ရန်နှိပ်ပါ
                               </p>
                               <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
                             </>
@@ -374,7 +476,7 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
 
                   {/* Alternative URL Input */}
                   <div className="text-center mb-2">
-                    <span className="text-xs text-gray-500">Or paste image URL directly</span>
+                    <span className="text-xs text-gray-500">Or paste image URL directly | သို့မဟုတ် ဓာတ်ပုံလင့်ခ်ကိုတိုက်ရိုက်ကူးထည့်ပါ</span>
                   </div>
                   <input
                     type="url"
@@ -393,12 +495,12 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Additional Notes (Optional)
+                    Additional Notes (Optional) | နောက်ထပ်မှတ်ချက်များ (ရွေးချယ်ခွင့်)
                   </label>
                   <textarea
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
-                    placeholder="Any additional information about your payment..."
+                    placeholder="Any additional information about your payment... | သင့်ငွေပေးချေမှုနှင့်ပတ်သက်သော နောက်ထပ်အချက်အလက်များ..."
                     rows={3}
                     className="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                   />
@@ -411,7 +513,7 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                 onClick={() => setStep('payment')}
                 className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
               >
-                Back
+                Back | နောက်သို့
               </button>
               <button
                 onClick={handleSubmitPaymentProof}
@@ -426,7 +528,7 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
                 ) : (
                   <>
                     <FileText className="w-4 h-4" />
-                    <span>Submit for Review</span>
+                    <span>Submit for Review | စစ်ဆေးရန်တင်သွင်းပါ</span>
                   </>
                 )}
               </button>
@@ -442,26 +544,41 @@ export default function PaymentModal({ isOpen, onClose, selectedPackage }: Payme
             </div>
             
             <div>
-              <h3 className="text-2xl font-bold text-white mb-2">Order Submitted Successfully!</h3>
-              <p className="text-gray-300">
-                Your payment proof has been submitted for review. We'll process your order within 24 hours.
-              </p>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Order Submitted Successfully! | အော်ဒါအောင်မြင်စွာတင်သွင်းပြီးပါပြီ!
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-blue-300 text-sm font-medium mb-1">English:</p>
+                  <p className="text-gray-300 text-sm">
+                    Your payment proof has been submitted for review. We'll process your order within 24 hours.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-green-300 text-sm font-medium mb-1">မြန်မာ:</p>
+                  <p className="text-gray-300 text-sm">
+                    သင့်ငွေပေးချေမှုအထောက်အထားကို စစ်ဆေးရန်တင်သွင်းပြီးပါပြီ။ ကျွန်ုပ်တို့သည် ၂၄ နာရီအတွင်း သင့်အော်ဒါကို လုပ်ဆောင်ပေးပါမည်။
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-              <p className="text-gray-300 text-sm">
-                <strong>Order Reference:</strong> {currentOrder?.order_reference}
+              <p className="text-gray-300 text-sm mb-2">
+                <strong>Order Reference | အော်ဒါနံပါတ်:</strong> {currentOrder?.order_reference}
               </p>
-              <p className="text-gray-300 text-sm mt-1">
-                You can check your order status in the "My Orders" section.
-              </p>
+              <div className="text-xs text-gray-400 space-y-1">
+                <p>• You can check your order status in the "Buy AI Packs" section</p>
+                <p>• "AI Packs ဝယ်ယူရန်" ကဏ္ဍတွင် သင့်အော်ဒါအခြေအနေကို စစ်ဆေးနိုင်ပါသည်</p>
+                <p>• We'll notify you once approved | အတည်ပြုပြီးပါက အကြောင်းကြားပါမည်</p>
+              </div>
             </div>
 
             <button
               onClick={handleClose}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-4 rounded-lg transition-all"
             >
-              Close
+              Close | ပိတ်ရန်
             </button>
           </div>
         )}
