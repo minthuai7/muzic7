@@ -35,9 +35,9 @@ export function useAdmin() {
         .select('*')
         .eq('id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
 
