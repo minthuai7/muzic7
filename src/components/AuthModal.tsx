@@ -45,12 +45,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             setError(error.message);
           }
         } else {
-          setMessage('Check your email for the confirmation link!');
+          setMessage('Account created successfully! You can now sign in.');
           setTimeout(() => {
             onClose();
             setMode('signin');
             setMessage('');
-          }, 3000);
+          }, 2000);
         }
       } else if (mode === 'signin') {
         const { error } = await signIn(email, password);
