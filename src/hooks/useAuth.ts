@@ -32,19 +32,18 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // For demo purposes, simulate successful signup
-      console.log('Demo signup attempt:', email);
-      return { 
-        data: { user: null, session: null }, 
-        error: null 
-      };
-    } catch (error) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      return { data, error };
+    } catch (error: any) {
       console.error('Sign up error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Demo mode: Sign up simulated successfully. Please use sign in instead.',
-          name: 'DemoError'
+          message: error.message || 'Sign up failed',
+          name: error.name || 'SignUpError'
         } 
       };
     }
@@ -52,43 +51,18 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // For demo purposes, create a mock user session
-      console.log('Demo signin attempt:', email);
-      
-      const mockUser = {
-        id: 'demo-user-id',
-        email: email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        aud: 'authenticated',
-        role: 'authenticated',
-        app_metadata: {},
-        user_metadata: {}
-      } as User;
-
-      const mockSession = {
-        access_token: 'demo-access-token',
-        refresh_token: 'demo-refresh-token',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: mockUser
-      } as Session;
-
-      setUser(mockUser);
-      setSession(mockSession);
-
-      return { 
-        data: { user: mockUser, session: mockSession }, 
-        error: null 
-      };
-    } catch (error) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { data, error };
+    } catch (error: any) {
       console.error('Sign in error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Demo mode: Authentication simulated. Any email/password will work.',
-          name: 'DemoError'
+          message: error.message || 'Sign in failed',
+          name: error.name || 'SignInError'
         } 
       };
     }
@@ -96,15 +70,14 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      setUser(null);
-      setSession(null);
-      return { error: null };
-    } catch (error) {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error: any) {
       console.error('Sign out error:', error);
       return { 
         error: { 
-          message: 'Sign out failed',
-          name: 'SignOutError'
+          message: error.message || 'Sign out failed',
+          name: error.name || 'SignOutError'
         } 
       };
     }
@@ -112,18 +85,15 @@ export function useAuth() {
 
   const resetPassword = async (email: string) => {
     try {
-      console.log('Demo password reset for:', email);
-      return { 
-        data: {}, 
-        error: null 
-      };
-    } catch (error) {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      return { data, error };
+    } catch (error: any) {
       console.error('Password reset error:', error);
       return { 
         data: null, 
         error: { 
-          message: 'Demo mode: Password reset simulated',
-          name: 'DemoError'
+          message: error.message || 'Password reset failed',
+          name: error.name || 'ResetPasswordError'
         } 
       };
     }
