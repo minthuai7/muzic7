@@ -107,7 +107,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 min-h-0">
           
           {/* Subscription Status */}
           {usage && (

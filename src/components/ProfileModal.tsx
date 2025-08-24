@@ -202,7 +202,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
           {/* Status Messages */}
           {message && (
             <div className="m-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
