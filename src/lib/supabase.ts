@@ -20,7 +20,7 @@ try {
 }
 
 // Validate URL is a Supabase URL
-if (!supabaseUrl.includes('.supabase.co')) {
+if (!supabaseUrl.includes('.supabase.co') || supabaseUrl.includes('placeholder')) {
   console.warn(`VITE_SUPABASE_URL "${supabaseUrl}" doesn't appear to be a valid Supabase URL. Expected format: https://your-project-id.supabase.co`);
 }
 
