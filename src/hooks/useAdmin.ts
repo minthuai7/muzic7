@@ -30,6 +30,14 @@ export function useAdmin() {
     if (!user) return;
 
     try {
+      // Check if Supabase is properly configured
+      if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
+        console.warn('Supabase not configured - admin features disabled');
+        setIsAdmin(false);
+        setAdminUser(null);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -38,6 +46,13 @@ export function useAdmin() {
         .maybeSingle();
 
       if (error) {
+        // Handle specific Supabase configuration errors
+        if (error.message?.includes('Supabase not configured')) {
+          console.warn('Supabase not configured - admin features disabled');
+          setIsAdmin(false);
+          setAdminUser(null);
+          return;
+        }
         throw error;
       }
 

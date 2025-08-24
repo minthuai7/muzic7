@@ -3,15 +3,38 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_url' || supabaseAnonKey === 'your_supabase_anon_key') {
   console.error('Missing Supabase environment variables:', {
     url: !!supabaseUrl,
-    key: !!supabaseAnonKey
+    key: !!supabaseAnonKey,
+    urlValue: supabaseUrl,
+    keyValue: supabaseAnonKey ? 'Present' : 'Missing'
   });
-  throw new Error('Missing Supabase environment variables. Please connect to Supabase using the button in the top-right corner.');
+  console.warn('Supabase not configured. Some features will be disabled.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Create a mock client if Supabase is not configured
+const createMockSupabaseClient = () => ({
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    signUp: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+    signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+    signOut: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+    resetPasswordForEmail: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+  },
+  from: () => ({
+    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }),
+    insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not configured' } }) }),
+    delete: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not configured' } }) })
+  })
+});
+
+export const supabase = (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_url' || supabaseAnonKey === 'your_supabase_anon_key') 
+  ? createMockSupabaseClient()
+  : createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -27,4 +50,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'Content-Type': 'application/json'
     }
   }
-});

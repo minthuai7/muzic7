@@ -28,8 +28,8 @@ export function useUserUsage() {
     if (!user) return;
 
     // Check if Supabase URL is configured
-    if (!import.meta.env.VITE_SUPABASE_URL) {
-      console.error('VITE_SUPABASE_URL not configured');
+    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
+      console.warn('Supabase not configured - using default usage data');
       setError('Supabase configuration missing');
       // Set default usage on configuration error
       setUsage({
@@ -46,12 +46,23 @@ export function useUserUsage() {
       setLoading(true);
       setError(null);
 
+      // Additional check for edge function availability
+      if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your_supabase_project_url') {
+        throw new Error('Supabase not configured');
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-usage`;
       
+      // Check if we have a valid session token
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.access_token) {
+        throw new Error('No valid session token');
+      }
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${user.access_token || (await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.data.session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -71,6 +82,11 @@ export function useUserUsage() {
       console.error('Error loading usage:', err);
       
       // Handle different types of fetch errors
+      if (err.message?.includes('Supabase not configured')) {
+        setError('Supabase not configured. Please set up your environment variables.');
+      } else if (err.message?.includes('No valid session token')) {
+        setError('Authentication required. Please sign in again.');
+      } else 
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
         setError('Unable to connect to server. Please check your internet connection.');
       } else if (err.message.includes('HTTP error')) {
