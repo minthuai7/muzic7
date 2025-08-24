@@ -57,6 +57,18 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Check if Supabase is properly configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl || supabaseUrl === 'your_supabase_project_url' || supabaseUrl.includes('dummy')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Supabase not configured. Please click "Connect to Supabase" button to set up your project.',
+            name: 'ConfigurationError'
+          } 
+        };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -64,6 +76,15 @@ export function useAuth() {
       return { data, error };
     } catch (error: any) {
       console.error('Sign in error:', error);
+      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Unable to connect to authentication service. Please check your connection or contact support.',
+            name: 'ConnectionError'
+          } 
+        };
+      }
       return { 
         data: null, 
         error: { 
@@ -76,6 +97,18 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      // Check if Supabase is properly configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl || supabaseUrl === 'your_supabase_project_url' || supabaseUrl.includes('dummy')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Supabase not configured. Please click "Connect to Supabase" button to set up your project.',
+            name: 'ConfigurationError'
+          } 
+        };
+      }
+
       const { error } = await supabase.auth.signOut();
       return { error };
     } catch (error: any) {
@@ -95,6 +128,15 @@ export function useAuth() {
       return { data, error };
     } catch (error: any) {
       console.error('Password reset error:', error);
+      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Unable to connect to authentication service. Please check your connection or contact support.',
+            name: 'ConnectionError'
+          } 
+        };
+      }
       return { 
         data: null, 
         error: { 
