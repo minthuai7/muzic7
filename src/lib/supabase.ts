@@ -10,6 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_u
     urlValue: supabaseUrl,
     keyValue: supabaseAnonKey ? 'Present' : 'Missing'
   });
+}
 
 // Create a mock client if Supabase is not configured
 const createMockSupabaseClient = () => ({
@@ -48,5 +49,4 @@ export const supabase = (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'yo
           'Content-Type': 'application/json'
         }
       }
-    }
-  }
+    });
