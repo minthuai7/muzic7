@@ -74,9 +74,6 @@ export function useAdmin() {
       const ordersWithUserDetails = await Promise.all(
         (data || []).map(async (order) => {
           try {
-            // Get user email from auth.users
-            const { data: userData } = await supabase.auth.admin.getUserById(order.user_id);
-            
             // Get user profile data separately
             const { data: profileData } = await supabase
               .from('user_profiles')
@@ -86,13 +83,13 @@ export function useAdmin() {
 
             return {
               ...order,
-              user_email: userData.user?.email || 'Unknown',
+              user_email: profileData?.display_name || profileData?.username || 'Unknown User',
               user_profiles: profileData
             };
           } catch {
             return {
               ...order,
-              user_email: 'Unknown',
+              user_email: 'Unknown User',
               user_profiles: null
             };
           }
