@@ -65,9 +65,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999] p-4"
     >
-      <div className="bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-lg min-h-[50vh] max-h-[90vh] overflow-y-auto">
+      <div className="bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-lg min-h-[50vh] max-h-[90vh] overflow-y-auto relative z-[99999]">
         <div className="flex items-center justify-between mb-6">
           <h2 id="modal-title" className="text-2xl font-bold text-white flex items-center">
             <Settings className="w-6 h-6 mr-2" />
