@@ -13,6 +13,7 @@ export default function LoadingSpinner({ message = 'Loading music...' }: Loading
         <Music className="w-6 h-6 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
       </div>
       <p className="text-gray-400 text-lg">{message}</p>
+      <p className="text-gray-500 text-sm">Powered by Jamendo - Free Music for Everyone</p>
     </div>
   );
 }
