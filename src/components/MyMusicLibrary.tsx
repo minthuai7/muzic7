@@ -297,7 +297,7 @@ export default function MyMusicLibrary({ onPlayTrack, currentTrack, isPlaying }:
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('navigate-to-generator'));
+                onViewChange?.('generator');
               }}
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
             >
@@ -305,7 +305,7 @@ export default function MyMusicLibrary({ onPlayTrack, currentTrack, isPlaying }:
             </button>
             <button 
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('navigate-to-library'));
+                onViewChange?.('library');
               }}
                 className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20 hover:border-white/40 font-medium"
             >

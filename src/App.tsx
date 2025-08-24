@@ -155,6 +155,7 @@ function App() {
               onPlayTrack={playTrack}
               currentTrack={currentTrack}
               isPlaying={isPlaying}
+              onViewChange={setCurrentView}
             />
           </ProtectedRoute>
         );
