@@ -69,8 +69,12 @@ serve(async (req) => {
     // Get Music AI API key from environment
     const apiKey = Deno.env.get('MUSIC_AI_API_KEY')
     if (!apiKey) {
+      console.error('MUSIC_AI_API_KEY environment variable not set')
       return new Response(
-        JSON.stringify({ success: false, error: 'Music AI API key not configured' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Music AI API key not configured. Please set MUSIC_AI_API_KEY in Supabase Edge Function environment variables.' 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

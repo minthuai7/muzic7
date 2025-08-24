@@ -129,7 +129,12 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       setTimeout(pollForCompletion, 10000);
     } catch (error) {
       console.error('Generation failed:', error);
-      setError(`Generation failed: ${error.message}`);
+      const errorMessage = error.message || 'Unknown error occurred';
+      if (errorMessage.includes('Music AI API key not configured')) {
+        setError('Music generation is not configured. Please contact support.');
+      } else {
+        setError(`Generation failed: ${errorMessage}`);
+      }
       setIsGenerating(false);
     }
   };

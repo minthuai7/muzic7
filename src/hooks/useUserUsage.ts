@@ -96,6 +96,10 @@ export function useUserUsage() {
 
       if (generateError) throw generateError;
 
+      if (!data) {
+        throw new Error('No response data from generate-music function');
+      }
+
       if (data.success) {
         // Update usage after successful generation
         if (data.usage) {
@@ -103,11 +107,14 @@ export function useUserUsage() {
         }
         return data.taskId;
       } else {
-        throw new Error(data.error || 'Generation failed');
+        const errorMessage = data.error || 'Generation failed';
+        console.error('Music generation failed:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
       console.error('Error generating music:', err);
-      setError(err.message || 'Generation failed');
+      const errorMessage = err.message || 'Generation failed';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
