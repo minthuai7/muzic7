@@ -261,14 +261,7 @@ export function useSavedTracks() {
       
       const { data, error: fetchError } = await supabase
         .from('saved_tracks')
-        .select(`
-          *,
-          user_profiles (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -277,10 +270,28 @@ export function useSavedTracks() {
 
       console.log('Public tracks loaded:', data?.length || 0);
       
-      const publicTracks = (data || []).map(item => ({
-        ...convertSavedTrackToTrack(item),
-        artist: item.user_profiles?.display_name || item.user_profiles?.username || item.artist || 'Anonymous User'
-      }));
+      // Get unique user IDs from the tracks
+      const userIds = [...new Set((data || []).map(track => track.user_id))];
+      
+      // Fetch user profiles separately
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', userIds);
+      
+      // Create a map of user profiles for quick lookup
+      const profileMap = new Map();
+      (profiles || []).forEach(profile => {
+        profileMap.set(profile.id, profile);
+      });
+      
+      const publicTracks = (data || []).map(item => {
+        const profile = profileMap.get(item.user_id);
+        return {
+          ...convertSavedTrackToTrack(item),
+          artist: profile?.display_name || profile?.username || item.artist || 'Anonymous User'
+        };
+      });
       
       console.log('Converted public tracks:', publicTracks.map(t => ({
         id: t.id,
