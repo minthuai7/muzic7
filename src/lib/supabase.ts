@@ -15,14 +15,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   },
   db: {
     schema: 'public'
   },
   global: {
     headers: {
-      'X-Client-Info': 'ai-music-studio'
+      'X-Client-Info': 'ai-music-studio',
+      'Content-Type': 'application/json'
     }
   }
 });

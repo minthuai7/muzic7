@@ -146,20 +146,28 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
 
   const handleSaveConfirm = async (track: Track, isPublic: boolean) => {
     try {
-      console.log('MusicGenerator: Saving track with public status:', isPublic);
+      console.log('=== MUSIC GENERATOR SAVE ===');
+      console.log('Track:', track.title);
+      console.log('Public:', isPublic);
+      
       const success = await saveTrack(track, isPublic);
+      
+      console.log('Save track result:', success);
+      
       if (success) {
-        setSaveMessage('Track saved successfully!');
+        const successMsg = `Track "${track.title}" saved successfully as ${isPublic ? 'public' : 'private'}!`;
+        console.log(successMsg);
+        setSaveMessage(successMsg);
         setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        // Error message will be set by the saveTrack function
-        console.log('MusicGenerator: Save operation returned false');
-        setTimeout(() => setError(''), 3000);
+        console.error('Save operation returned false - check useSavedTracks hook for error details');
       }
       return success;
     } catch (error) {
-      console.error('Error saving track:', error);
-      setError('Failed to save track. Please try again.');
+      console.error('=== MUSIC GENERATOR SAVE ERROR ===');
+      console.error('Error:', error);
+      const errorMsg = `Failed to save track: ${error?.message || 'Unknown error'}`;
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
       return false;
     }
