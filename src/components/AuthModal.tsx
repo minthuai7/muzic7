@@ -39,7 +39,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         const { error } = await signUp(email, password);
         if (error) {
-          setError(error.message);
+          if (error.name === 'NetworkError') {
+            setError('Connection failed. Please check your internet connection and try again.');
+          } else {
+            setError(error.message);
+          }
         } else {
           setMessage('Check your email for the confirmation link!');
           setTimeout(() => {
@@ -51,14 +55,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       } else if (mode === 'signin') {
         const { error } = await signIn(email, password);
         if (error) {
-          setError(error.message);
+          if (error.name === 'NetworkError') {
+            setError('Connection failed. Please check your internet connection and try again.');
+          } else {
+            setError(error.message);
+          }
         } else {
           onClose();
         }
       } else if (mode === 'reset') {
         const { error } = await resetPassword(email);
         if (error) {
-          setError(error.message);
+          if (error.name === 'NetworkError') {
+            setError('Connection failed. Please check your internet connection and try again.');
+          } else {
+            setError(error.message);
+          }
         } else {
           setMessage('Password reset email sent!');
           setTimeout(() => {
