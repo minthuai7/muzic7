@@ -39,12 +39,21 @@ export function useUserUsage() {
         throw new Error('No valid session found');
       }
 
-      const { data, error: fetchError } = await supabase.functions.invoke('get-user-usage', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      let data, fetchError;
+      
+      try {
+        const result = await supabase.functions.invoke('get-user-usage', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        data = result.data;
+        fetchError = result.error;
+      } catch (networkError) {
+        console.error('Network error calling get-user-usage:', networkError);
+        throw new Error(`Cannot connect to Supabase functions. Please check your VITE_SUPABASE_URL in .env file. Current URL: ${import.meta.env.VITE_SUPABASE_URL}`);
+      }
 
       if (fetchError) {
         console.error('Edge function error:', fetchError);
@@ -54,6 +63,7 @@ export function useUserUsage() {
       if (!data) {
         throw new Error('No data returned from function');
       }
+      
       if (data.success) {
         setUsage(data.usage);
       } else {
@@ -62,7 +72,14 @@ export function useUserUsage() {
       }
     } catch (err: any) {
       console.error('Error loading usage:', err);
-      setError(`Failed to load usage: ${err.message}`);
+      
+      // Provide specific error messages for common issues
+      let errorMessage = err.message;
+      if (err.message.includes('Failed to fetch') || err.message.includes('Cannot connect')) {
+        errorMessage = 'Cannot connect to Supabase. Please check your internet connection and Supabase configuration.';
+      }
+      
+      setError(`Failed to load usage: ${errorMessage}`);
       
       // Set default usage for free users when function fails
       setUsage({
