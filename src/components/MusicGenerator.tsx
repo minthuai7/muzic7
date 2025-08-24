@@ -199,6 +199,17 @@ export default function MusicGenerator({ onTrackGenerated, onPlayTrack }: MusicG
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
           <p className="text-red-400 text-sm">{error}</p>
+          {error.includes('No generations remaining') && (
+            <div className="mt-3 pt-3 border-t border-red-500/30">
+              <p className="text-red-300 text-sm mb-2">Need more AI generations?</p>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-packages'))}
+                className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white rounded-lg text-sm font-medium transition-all"
+              >
+                💎 Buy AI Music Packs
+              </button>
+            </div>
+          )}
         </div>
       )}
 

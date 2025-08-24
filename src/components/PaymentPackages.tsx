@@ -130,10 +130,10 @@ export default function PaymentPackages() {
 
               <button
                 onClick={() => handlePurchase(pkg)}
-                className={`w-full bg-gradient-to-r ${getPackageColor(pkg.name)} hover:opacity-90 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 shadow-lg`}
+                className={`w-full bg-gradient-to-r ${getPackageColor(pkg.name)} hover:opacity-90 hover:scale-105 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-xl text-lg`}
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span>Purchase Package</span>
+                <span>Buy {pkg.name} Pack</span>
               </button>
             </div>
           </div>

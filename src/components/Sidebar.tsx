@@ -18,7 +18,7 @@ export default function Sidebar({ currentView, onViewChange, user }: SidebarProp
     { id: 'public', label: 'Public Feed', icon: Globe },
     { id: 'generator', label: 'AI Generator', icon: Sparkles, requireAuth: true },
     { id: 'mymusic', label: 'My Music', icon: UserIcon, requireAuth: true },
-    { id: 'packages', label: 'Buy AI Packs', icon: CreditCard, requireAuth: true },
+    { id: 'packages', label: '💎 Buy AI Packs', icon: CreditCard, requireAuth: true },
     { id: 'liked', label: 'Liked Songs', icon: Heart, requireAuth: true },
     { id: 'recent', label: 'Recently Played', icon: Clock, requireAuth: true },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: Shield, requireAuth: true, adminOnly: true }] : []),
