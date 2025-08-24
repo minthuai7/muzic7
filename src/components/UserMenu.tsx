@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { User, LogOut, Settings, Music, X, Crown, Mail, Calendar } from 'lucide-react';
+import { User, LogOut, Settings, Music, X, Crown, Mail, Calendar, Shield } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserUsage } from '../hooks/useUserUsage';
+import { useAdmin } from '../hooks/useAdmin';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
 
@@ -12,6 +13,7 @@ export default function UserMenu() {
   const [showSettings, setShowSettings] = useState(false);
   const { user, signOut } = useAuth();
   const { usage } = useUserUsage();
+  const { isAdmin } = useAdmin();
 
   // Close menu when clicking outside or pressing escape
   useEffect(() => {
@@ -43,6 +45,11 @@ export default function UserMenu() {
   const handleMyMusicClick = () => {
     setIsOpen(false);
     window.dispatchEvent(new CustomEvent('navigate-to-mymusic'));
+  };
+
+  const handleAdminClick = () => {
+    setIsOpen(false);
+    window.dispatchEvent(new CustomEvent('navigate-to-admin'));
   };
 
   if (!user) return null;
@@ -157,6 +164,24 @@ export default function UserMenu() {
               <p className="text-sm text-gray-500">Your saved tracks</p>
             </div>
           </button>
+
+          {isAdmin && (
+            <button 
+              onClick={handleAdminClick}
+              className="w-full flex items-center space-x-4 p-4 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all group border border-yellow-500/30 bg-yellow-500/10"
+            >
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center group-hover:bg-yellow-500/30 transition-colors">
+                <Shield className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium flex items-center">
+                  Admin Panel
+                  <Crown className="w-4 h-4 ml-2 text-yellow-400" />
+                </p>
+                <p className="text-sm text-gray-500">Manage payments & orders</p>
+              </div>
+            </button>
+          )}
 
           <button 
             onClick={handleSettingsClick}

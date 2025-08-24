@@ -63,15 +63,18 @@ function App() {
     const handleNavigateToPackages = () => setCurrentView('packages');
     const handleNavigateToGenerator = () => setCurrentView('generator');
     const handleNavigateToMyMusic = () => setCurrentView('mymusic');
+    const handleNavigateToAdmin = () => setCurrentView('admin');
     
     window.addEventListener('navigate-to-packages', handleNavigateToPackages);
     window.addEventListener('navigate-to-generator', handleNavigateToGenerator);
     window.addEventListener('navigate-to-mymusic', handleNavigateToMyMusic);
+    window.addEventListener('navigate-to-admin', handleNavigateToAdmin);
     
     return () => {
       window.removeEventListener('navigate-to-packages', handleNavigateToPackages);
       window.removeEventListener('navigate-to-generator', handleNavigateToGenerator);
       window.removeEventListener('navigate-to-mymusic', handleNavigateToMyMusic);
+      window.removeEventListener('navigate-to-admin', handleNavigateToAdmin);
     };
   }, []);
 

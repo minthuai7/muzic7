@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Music, Sparkles, Library, Heart, Clock, Globe, User as UserIcon, CreditCard, Shield } from 'lucide-react';
+import { Home, Music, Sparkles, Library, Heart, Clock, Globe, User as UserIcon, CreditCard, Shield, Crown } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { useAdmin } from '../hooks/useAdmin';
 
@@ -21,38 +21,46 @@ export default function Sidebar({ currentView, onViewChange, user }: SidebarProp
     { id: 'packages', label: '💎 Buy AI Packs', icon: CreditCard, requireAuth: true },
     { id: 'liked', label: 'Liked Songs', icon: Heart, requireAuth: true },
     { id: 'recent', label: 'Recently Played', icon: Clock, requireAuth: true },
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: Shield, requireAuth: true, adminOnly: true }] : []),
   ];
+
+  // Add admin panel for admin users
+  if (isAdmin) {
+    menuItems.push({
+      id: 'admin',
+      label: 'Admin Panel',
+      icon: Shield,
+      requireAuth: true,
+      adminOnly: true
+    });
+  }
 
   return (
     <div className="w-16 md:w-64 bg-black/40 backdrop-blur-md border-r border-white/10 p-3 md:p-6">
       <div className="space-y-2">
         {menuItems.map((item) => {
           const isDisabled = item.requireAuth && !user;
-          const isAdminOnly = item.adminOnly && !isAdmin;
           
           return (
             <button
               key={item.id}
-              onClick={() => !isDisabled && !isAdminOnly && onViewChange(item.id)}
-              disabled={isDisabled || isAdminOnly}
+              onClick={() => !isDisabled && onViewChange(item.id)}
+              disabled={isDisabled}
               className={`w-full flex items-center justify-center md:justify-start space-x-0 md:space-x-3 px-2 md:px-4 py-3 rounded-lg transition-all ${
                 currentView === item.id
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                  : isDisabled || isAdminOnly
+                  : isDisabled
                   ? 'text-gray-500 cursor-not-allowed opacity-50'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
-              }`}
+              }${item.adminOnly ? ' border border-yellow-500/30 bg-yellow-500/10' : ''}`}
               title={
-                isDisabled ? `${item.label} (Sign in required)` :
-                isAdminOnly ? `${item.label} (Admin only)` :
-                item.label
+                isDisabled ? `${item.label} (Sign in required)` : item.label
               }
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className={`w-5 h-5 ${item.adminOnly ? 'text-yellow-400' : ''}`} />
               <span className="font-medium hidden md:block">
                 {item.label}
-                {(isDisabled || isAdminOnly) && <span className="text-xs ml-1">🔒</span>}
+                {item.adminOnly && <Crown className="w-3 h-3 inline ml-1 text-yellow-400" />}
+                {isDisabled && <span className="text-xs ml-1">🔒</span>}
               </span>
             </button>
           );
