@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  X, 
-  User, 
-  Save, 
-  Loader2, 
-  Camera, 
-  Mail, 
-  Crown, 
+import {
+  X,
+  User,
+  Save,
+  Loader2,
+  Camera,
+  Mail,
+  Crown,
   Calendar,
-  Edit3,
-  Shield,
   Star,
   Music,
   Eye,
   Globe,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserUsage } from '../hooks/useUserUsage';
@@ -34,10 +33,31 @@ interface UserProfile {
   bio?: string;
 }
 
+interface UserUsage {
+  planType: 'free' | 'premium';
+  current: number;
+  remaining: number;
+  limit: number;
+  resetDate: string;
+}
+
+interface UserStats {
+  tracksCreated: number;
+  publicTracks: number;
+  totalPlays: number;
+  followers: number;
+}
+
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user } = useAuth();
   const { usage } = useUserUsage();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState<UserStats>({
+    tracksCreated: 0,
+    publicTracks: 0,
+    totalPlays: 0,
+    followers: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -48,12 +68,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     bio: '',
     avatar_url: ''
   });
-
-  useEffect(() => {
-    if (isOpen && user) {
-      loadProfile();
-    }
-  }, [isOpen, user]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -67,9 +81,16 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     };
   }, [isOpen]);
 
+  // Load profile and stats
+  useEffect(() => {
+    if (isOpen && user) {
+      loadProfile();
+      loadStats();
+    }
+  }, [isOpen, user]);
+
   const loadProfile = async () => {
     if (!user) return;
-
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -77,11 +98,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         .select('*')
         .eq('id', user.id)
         .single();
-
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-
       if (data) {
         setProfile(data);
         setFormData({
@@ -91,7 +110,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           avatar_url: data.avatar_url || ''
         });
       } else {
-        // Create profile if it doesn't exist
         const newProfile = {
           id: user.id,
           username: user.email?.split('@')[0] || '',
@@ -99,15 +117,12 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           bio: '',
           avatar_url: ''
         };
-        
         const { data: createdProfile, error: createError } = await supabase
           .from('user_profiles')
           .insert(newProfile)
           .select()
           .single();
-
         if (createError) throw createError;
-        
         setProfile(createdProfile);
         setFormData({
           username: createdProfile.username || '',
@@ -124,13 +139,54 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  const handleSave = async () => {
-    if (!user || !profile) return;
+  const loadStats = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (data) setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !user) return;
+    const file = e.target.files[0];
+    const fileName = `${user.id}-${Date.now()}`;
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file);
+    if (error) {
+      setError('Failed to upload avatar');
+      return;
+    }
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+    setFormData({ ...formData, avatar_url: urlData.publicUrl });
+  };
+
+  const validateForm = () => {
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
+      return false;
+    }
+    if (formData.avatar_url && !/^https?:\/\/.+\.(jpg|jpeg|png|webp)$/i.test(formData.avatar_url)) {
+      setError('Invalid avatar URL');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!user || !profile || !validateForm()) return;
     setSaving(true);
     setMessage('');
     setError('');
-
     try {
       const { error } = await supabase
         .from('user_profiles')
@@ -141,9 +197,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           avatar_url: formData.avatar_url.trim() || null
         })
         .eq('id', user.id);
-
       if (error) throw error;
-
       setMessage('Profile updated successfully!');
       setTimeout(() => {
         onClose();
@@ -161,25 +215,22 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
-  const modalContent = (
-    <div className="fixed inset-0 z-[999999] flex" style={{ zIndex: 999999 }}>
+  const modalContent = useMemo(() => (
+    <div className="fixed inset-0 z-[999999] flex">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
         style={{ zIndex: 999998 }}
         onClick={onClose}
       />
-      
+
       {/* Slide Panel */}
-      <div 
+      <div
         className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
         style={{ zIndex: 999999 }}
       >
-        
         {/* Header - Fixed */}
         <div className="sticky top-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-b border-white/20 p-4">
           <div className="flex items-center justify-between">
@@ -195,6 +246,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <button
               onClick={onClose}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5 text-gray-400" />
             </button>
@@ -205,30 +257,29 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
           {/* Status Messages */}
           {message && (
-            <div className="m-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <div role="alert" aria-live="assertive" className="m-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
               <p className="text-green-400 text-sm flex items-center">
-                <CheckCircle className="w-4 h-4 mr-2" />
+                <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
                 {message}
               </p>
             </div>
           )}
-
           {error && (
-            <div className="m-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div role="alert" aria-live="assertive" className="m-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p className="text-red-400 text-sm flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2" aria-hidden="true" />
+                {error}
+              </p>
             </div>
           )}
-
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center space-y-4">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto" />
                 <p className="text-gray-400">Loading profile...</p>
               </div>
-            </div>
-          ) : (
+            ) : (
             <div className="p-4 space-y-6">
-              
               {/* Subscription Status */}
               {usage && (
                 <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
@@ -243,7 +294,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       </button>
                     )}
                   </div>
-                  
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="bg-white/10 rounded-lg p-2 text-center">
                       <p className="text-sm font-bold text-white">{usage.current}</p>
@@ -254,9 +304,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       <p className="text-xs text-gray-400">Left</p>
                     </div>
                   </div>
-                  
                   <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
                       style={{ width: `${(usage.current / usage.limit) * 100}%` }}
                     />
@@ -271,24 +320,32 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               {/* Avatar Section */}
               <div className="text-center">
                 <div className="relative inline-block mb-3">
-                  <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg">
+                  <div className="w-20 h-20 rounded-full mx-auto shadow-lg flex items-center justify-center overflow-hidden bg-gray-700">
                     {formData.avatar_url ? (
                       <img
                         src={formData.avatar_url}
                         alt="Avatar"
-                        className="w-full h-full rounded-full object-cover"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
+                          (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
                     ) : (
-                      user?.email?.charAt(0).toUpperCase() || 'U'
+                      <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-gradient-to-r from-purple-600 to-pink-600">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </div>
                     )}
                   </div>
-                  <button className="absolute bottom-0 right-0 bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-colors shadow-lg">
-                    <Camera className="w-3 h-3 text-white" />
-                  </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    id="avatar-upload"
+                  />
+                  <label htmlFor="avatar-upload" className="absolute bottom-0 right-12 bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-colors shadow-lg cursor-pointer">
+                    <Camera className="w-4 h-4 text-white" />
+                  </label>
                 </div>
                 <p className="text-gray-400 text-xs">Click camera to change avatar</p>
               </div>
@@ -393,64 +450,64 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <Eye className="w-4 h-4 text-green-400" />
                   <h3 className="text-sm font-semibold text-white">Activity Stats</h3>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-white/5 rounded-lg p-2 text-center">
-                    <p className="text-sm font-bold text-white">0</p>
+                    <p className="text-sm font-bold text-white">{stats.tracksCreated}</p>
                     <p className="text-xs text-gray-400">Tracks Created</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-2 text-center">
-                    <p className="text-sm font-bold text-white">0</p>
+                    <p className="text-sm font-bold text-white">{stats.publicTracks}</p>
                     <p className="text-xs text-gray-400">Public Tracks</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-2 text-center">
-                    <p className="text-sm font-bold text-white">0</p>
+                    <p className="text-sm font-bold text-white">{stats.totalPlays}</p>
                     <p className="text-xs text-gray-400">Total Plays</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-2 text-center">
-                    <p className="text-sm font-bold text-white">0</p>
+                    <p className="text-sm font-bold text-white">{stats.followers}</p>
                     <p className="text-xs text-gray-400">Followers</p>
                   </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Footer Actions - Fixed */}
+          {!loading && (
+            <div className="sticky bottom-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-t border-white/20 p-4">
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all disabled:opacity-50 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-sm shadow-lg"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Footer Actions - Fixed */}
-        {!loading && (
-          <div className="sticky bottom-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-t border-white/20 p-4">
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                disabled={saving}
-                className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all disabled:opacity-50 text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-sm shadow-lg"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>Save Changes</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
-  );
+  ), [isOpen, loading, saving, formData, message, error, profile, usage, stats]);
 
+  if (!isOpen) return null;
   return createPortal(modalContent, document.body);
 }
