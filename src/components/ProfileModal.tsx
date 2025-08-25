@@ -472,7 +472,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             )}
           </div>
 
-          {/* Footer Actions - Fixed */}
+          {/* Footer Actions - Fixed! */}
           {!loading && (
             <div className="sticky bottom-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-t border-white/20 p-4">
               <div className="flex gap-3">
