@@ -27,19 +27,9 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-type Settings = {
-  volume: number;
-  notifications: boolean;
-  autoplay: boolean;
-  highQuality: boolean;
-  darkMode: boolean;
-  showLyrics: boolean;
-  downloadQuality: 'low' | 'medium' | 'high';
-};
-
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { usage } = useUserUsage();
-  const [settings, setSettings] = useState<Settings>({
+  const [settings, setSettings] = useState({
     volume: 80,
     notifications: true,
     autoplay: false,
@@ -51,15 +41,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   // Load saved settings from localStorage on mount
   useEffect(() => {
-    try {
-      const savedSettings = Object.keys(settings).reduce((acc, key) => {
-        const savedValue = localStorage.getItem(`setting_${key}`);
-        return { ...acc, [key]: savedValue ? JSON.parse(savedValue) : settings[key] };
-      }, {} as Settings);
-      setSettings(savedSettings);
-    } catch (e) {
-      console.error("Failed to load settings from localStorage", e);
-    }
+    const savedSettings = Object.keys(settings).reduce((acc, key) => {
+      const savedValue = localStorage.getItem(`setting_${key}`);
+      return { ...acc, [key]: savedValue ? JSON.parse(savedValue) : settings[key] };
+    }, {} as typeof settings);
+    setSettings(savedSettings);
   }, []);
 
   // Prevent body scroll when modal is open
@@ -75,7 +61,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [isOpen]);
 
   // Handle setting changes and save to localStorage
-  const handleSettingChange = useCallback((key: keyof Settings, value: string | number | boolean) => {
+  const handleSettingChange = useCallback((key: string, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     localStorage.setItem(`setting_${key}`, JSON.stringify(value));
   }, []);
@@ -83,15 +69,22 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[999999] flex h-screen">
+    <div className="fixed inset-0 z-[999999] flex" style={{ zIndex: 999999 }}>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        style={{ zIndex: 999998 }}
         onClick={onClose}
       />
-
+      
       {/* Slide Panel */}
-      <div className="ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl flex flex-col">
+      <div 
+        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
+        style={{ zIndex: 999999 }}
+      >
+        
         {/* Header - Fixed */}
         <div className="sticky top-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-b border-white/20 p-4">
           <div className="flex items-center justify-between">
@@ -111,9 +104,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
+        </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 min-h-0">
+          
           {/* Subscription Status */}
           {usage && (
             <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
@@ -128,7 +123,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </button>
                 )}
               </div>
-
+              
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="bg-white/10 rounded-lg p-2 text-center">
                   <p className="text-sm font-bold text-white">{usage.current}</p>
@@ -143,9 +138,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <p className="text-xs text-gray-400">Total</p>
                 </div>
               </div>
-
+              
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
+                <div 
                   className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
                   style={{ width: `${Math.min((usage.current / usage.limit) * 100, 100)}%` }}
                 />
@@ -162,6 +157,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Volume2 className="w-4 h-4 text-blue-400" />
               <h3 className="text-sm font-semibold text-white">Audio Settings</h3>
             </div>
+
             {/* Volume Control */}
             <div className="bg-white/5 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
@@ -182,6 +178,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 }}
               />
             </div>
+
             {/* Audio Quality */}
             <div className="bg-white/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
@@ -203,6 +200,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </label>
               </div>
             </div>
+
             {/* Autoplay */}
             <div className="bg-white/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
@@ -232,6 +230,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Bell className="w-4 h-4 text-yellow-400" />
               <h3 className="text-sm font-semibold text-white">Notifications</h3>
             </div>
+
             <div className="bg-white/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -260,6 +259,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Palette className="w-4 h-4 text-pink-400" />
               <h3 className="text-sm font-semibold text-white">Appearance</h3>
             </div>
+
             <div className="bg-white/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -285,13 +285,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Download className="w-4 h-4 text-green-400" />
               <h3 className="text-sm font-semibold text-white">Downloads</h3>
             </div>
+
             <div className="bg-white/5 rounded-lg p-3">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Download Quality
               </label>
               <select
                 value={settings.downloadQuality}
-                onChange={(e) => handleSettingChange('downloadQuality', e.target.value as 'low' | 'medium' | 'high')}
+                onChange={(e) => handleSettingChange('downloadQuality', e.target.value)}
                 className="w-full bg-white/10 border border-white/20 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="low" className="bg-gray-800">Low (128kbps)</option>
@@ -308,6 +309,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Shield className="w-4 h-4 text-red-400" />
               <h3 className="text-sm font-semibold text-white">Privacy & Security</h3>
             </div>
+
             <div className="space-y-2">
               <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all">
                 <div className="flex items-center space-x-2">
@@ -319,6 +321,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
+
               <button className="w-full flex items-center justify-between p-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20">
                 <div className="flex items-center space-x-2">
                   <Trash2 className="w-4 h-4 text-red-400" />
