@@ -112,18 +112,13 @@ Deno.serve(async (req) => {
     // If no subscription exists, create default free plan
     if (!subscription) {
       console.log('No subscription found, creating default...');
-      const nextResetDate = new Date();
-      nextResetDate.setMonth(nextResetDate.getMonth() + 1, 1);
-      nextResetDate.setHours(0, 0, 0, 0);
-      
       const { data: newSub, error: createError } = await supabaseClient
         .from('user_subscriptions')
         .insert({
           user_id: user.id,
           plan_type: 'free',
           monthly_limit: 1,
-          current_usage: 0,
-          reset_date: nextResetDate.toISOString()
+          current_usage: 0
         })
         .select()
         .single()
