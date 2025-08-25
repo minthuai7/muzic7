@@ -174,7 +174,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       
       {/* Slide Panel */}
       <div 
-        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative flex flex-col h-full ${
+        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative flex flex-col ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
         style={{ zIndex: 999999 }}
@@ -324,7 +324,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       placeholder="Choose a unique username"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]
+                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]"
                     />
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                       placeholder="How others will see your name"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]
+                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]"
                     />
                   </div>
                 </div>
@@ -359,7 +359,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       placeholder="Tell the community about yourself..."
                       rows={3}
                       maxLength={500}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]
+                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]"
                     />
                   </div>
                   <div className="flex justify-between items-center mt-1">
@@ -380,7 +380,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       value={formData.avatar_url}
                       onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
                       placeholder="https://example.com/avatar.jpg"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]
+                      className="w-full bg-white/10 border border-white/20 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 fo[...]"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Optional: Link to your profile picture</p>
@@ -431,7 +431,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg transition-all [...]
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg transition-all [...]"
               >
                 {saving ? (
                   <>
