@@ -1,659 +1,362 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
-import { ArrowLeft, Upload, Music, Image, FileText, Download, Play, Pause } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  X,
+  Settings,
+  Volume2,
+  Bell,
+  Shield,
+  Palette,
+  Download,
+  Trash2,
+  Crown,
+  CreditCard,
+  Zap,
+  ChevronRight,
+  Monitor,
+  Smartphone,
+  Headphones,
+  User,
+  Music,
+  Globe
+} from 'lucide-react';
+import { useUserUsage } from '../hooks/useUserUsage';
 
-interface GeneratedTrack {
-  id: string;
-  audioUrl: string;
-  streamAudioUrl: string;
-  imageUrl: string;
-  prompt: string;
-  title: string;
-  tags: string;
-  duration: number;
-  createTime: string;
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-interface TaskStatus {
-  taskId: string;
-  status: string;
-  response?: {
-    sunoData?: GeneratedTrack[];
-  };
-  errorMessage?: string;
-}
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { usage } = useUserUsage();
+  const [settings, setSettings] = useState({
+    volume: 80,
+    notifications: true,
+    autoplay: false,
+    highQuality: true,
+    darkMode: true,
+    showLyrics: true,
+    downloadQuality: 'high'
+  });
 
-export default function KieMusicGenerator() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [coinBalance, setCoinBalance] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [taskStatus, setTaskStatus] = useState<TaskStatus | null>(null);
-  const [generatedTracks, setGeneratedTracks] = useState<GeneratedTrack[]>([]);
-  const [generatedLyrics, setGeneratedLyrics] = useState<string | null>(null);
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
-
-  // Form states
-  const [mode, setMode] = useState<"description" | "custom" | "image">("description");
-  const [prompt, setPrompt] = useState("");
-  const [customLyrics, setCustomLyrics] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [style, setStyle] = useState("");
-  const [title, setTitle] = useState("");
-  const [instrumental, setInstrumental] = useState(false);
-  const [model, setModel] = useState("V4_5");
-
+  // Load saved settings from localStorage on mount
   useEffect(() => {
-    checkUser();
+    const savedSettings = Object.keys(settings).reduce((acc, key) => {
+      const savedValue = localStorage.getItem(`setting_${key}`);
+      return { ...acc, [key]: savedValue ? JSON.parse(savedValue) : settings[key] };
+    }, {} as typeof settings);
+    setSettings(savedSettings);
   }, []);
 
+  // Prevent body scroll when modal is open
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (taskId && !["SUCCESS", "FIRST_SUCCESS"].includes(taskStatus?.status || "")) {
-      interval = setInterval(() => {
-        checkTaskStatus();
-      }, 10000); // Check every 10 seconds
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
     }
     return () => {
-      if (interval) clearInterval(interval);
+      document.body.style.overflow = 'auto';
     };
-  }, [taskId, taskStatus?.status]);
+  }, [isOpen]);
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    setUser(user);
-    loadCoinBalance(user);
-  };
+  // Handle setting changes and save to localStorage
+  const handleSettingChange = useCallback((key: string, value: string | number | boolean) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    localStorage.setItem(`setting_${key}`, JSON.stringify(value));
+  }, []);
 
-  const loadCoinBalance = async (currentUser: any) => {
-    const { data } = await supabase
-      .from("earth_coins")
-      .select("balance")
-      .eq("user_id", currentUser.id)
-      .single();
+  if (!isOpen) return null;
 
-    if (data) {
-      setCoinBalance(data.balance);
-    }
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error("Image size must be less than 10MB");
-        return;
-      }
-
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const getCoinCost = () => {
-    switch (mode) {
-      case "image": return 50;
-      case "custom": return 30;
-      default: return 20;
-    }
-  };
-
-  const validateForm = () => {
-    if (mode === "description" && !prompt.trim()) {
-      toast.error("Please enter a music description");
-      return false;
-    }
-    if (mode === "custom" && !customLyrics.trim()) {
-      toast.error("Please enter custom lyrics");
-      return false;
-    }
-    if (mode === "image" && !imageFile) {
-      toast.error("Please upload an image");
-      return false;
-    }
-    return true;
-  };
-
-  const convertImageToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleGenerate = async () => {
-    if (!validateForm()) return;
-    const coinCost = getCoinCost();
-    if (coinBalance < coinCost) {
-      toast.error(`Insufficient Earth Coins. Need ${coinCost} coins for ${mode} mode.`);
-      return;
-    }
-    setIsLoading(true);
-    setGeneratedTracks([]);
-    setGeneratedLyrics(null);
-    setTaskStatus(null);
-
-    try {
-      let imageBase64 = null;
-      if (mode === "image" && imageFile) {
-        imageBase64 = await convertImageToBase64(imageFile);
-      }
-
-      const { data, error } = await supabase.functions.invoke("kie-music-generator", {
-        body: {
-          mode,
-          prompt: mode === "description" ? prompt : undefined,
-          customLyrics: mode === "custom" ? customLyrics : undefined,
-          imageBase64,
-          style: (mode === "custom" || mode === "image") ? style : undefined,
-          title: (mode === "custom" || mode === "image") ? title : undefined,
-          instrumental: mode !== "image" ? instrumental : false,
-          model
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setTaskId(data.data.taskId);
-        setGeneratedLyrics(data.generated_lyrics);
-        setCoinBalance(prev => prev - data.coins_spent);
-        toast.success(`Music generation started! ${data.coins_spent} Earth Coins spent.`);
-        setTaskStatus({ taskId: data.data.taskId, status: "PENDING" });
-      } else {
-        throw new Error(data.error || "Generation failed");
-      }
-    } catch (error: any) {
-      console.error("Generation error:", error);
-      toast.error(error.message || "Failed to generate music");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkTaskStatus = async () => {
-    if (!taskId) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke("kie-music-status", {
-        body: { taskId }
-      });
-
-      console.log("Status check response:", data, error); // Debug log
-
-      if (error) throw error;
-
-      if (data.success) {
-        setTaskStatus(data.data);
-
-        if (data.data.status === "SUCCESS" || data.data.status === "FIRST_SUCCESS") {
-          if (data.data.response?.sunoData) {
-            console.log("Generated tracks:", data.data.response.sunoData); // Debug log
-            setGeneratedTracks(data.data.response.sunoData);
-            toast.success("Music generation completed!");
-          }
-        } else if (data.data.status.includes("FAILED") || data.data.status.includes("ERROR")) {
-          toast.error(`Generation failed: ${data.data.errorMessage || data.data.status}`);
-        }
-      }
-    } catch (error: any) {
-      console.error("Status check error:", error);
-      toast.error("Failed to check generation status");
-    }
-  };
-
-  const togglePlayPause = (track: GeneratedTrack) => {
-    const audioKey = track.id;
-
-    if (currentlyPlaying === audioKey) {
-      if (audioElements[audioKey]) {
-        audioElements[audioKey].pause();
-      }
-      setCurrentlyPlaying(null);
-    } else {
-      if (currentlyPlaying && audioElements[currentlyPlaying]) {
-        audioElements[currentlyPlaying].pause();
-      }
-
-      if (!audioElements[audioKey]) {
-        const audio = new Audio(track.audioUrl);
-        audio.onended = () => setCurrentlyPlaying(null);
-        setAudioElements(prev => ({ ...prev, [audioKey]: audio }));
-        audio.play();
-      } else {
-        audioElements[audioKey].play();
-      }
-      setCurrentlyPlaying(audioKey);
-    }
-  };
-
-  const downloadTrack = (track: GeneratedTrack) => {
-    const link = document.createElement("a");
-    link.href = track.audioUrl;
-    link.download = `${track.title || "generated-music"}.mp3`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Download started!");
-  };
-
-  const getStatusMessage = () => {
-    if (!taskStatus) return null;
-
-    console.log("Current task status:", taskStatus.status); // Debug log
-
-    switch (taskStatus.status) {
-      case "PENDING":
-        return "Generating music... This may take 1-3 minutes.";
-      case "TEXT_SUCCESS":
-        return "Lyrics generated! Creating audio...";
-      case "FIRST_SUCCESS":
-        return "First track completed! Generating second track...";
-      case "SUCCESS":
-        return "All tracks generated successfully!";
-      default:
-        if (taskStatus.status.includes("FAILED") || taskStatus.status.includes("ERROR")) {
-          return `Generation failed: ${taskStatus.errorMessage || taskStatus.status}`;
-        }
-        return `Status: ${taskStatus.status}`;
-    }
-  };
-
-  const resetForm = () => {
-    setPrompt("");
-    setCustomLyrics("");
-    setImageFile(null);
-    setImagePreview(null);
-    setStyle("");
-    setTitle("");
-    setInstrumental(false);
-    setTaskId(null);
-    setTaskStatus(null);
-    setGeneratedTracks([]);
-    setGeneratedLyrics(null);
-    setCurrentlyPlaying(null);
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile-First Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[999999] flex" style={{ zIndex: 999999 }}>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        style={{ zIndex: 999998 }}
+        onClick={onClose}
+      />
+      
+      {/* Slide Panel */}
+      <div 
+        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
+        style={{ zIndex: 999999 }}
+      >
+        
+        {/* Header - Fixed */}
+        <div className="sticky top-0 z-[999990] bg-gray-900/98 backdrop-blur-xl border-b border-white/20 p-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/ai-lab")}
-              className="text-muted-foreground hover:text-foreground"
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
+                <Settings className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Settings</h2>
+                <p className="text-xs text-gray-400">Customize your experience</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to AI Lab</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+        </div>
 
-            {/* Mobile Coin Display */}
-            <div className="flex items-center gap-2 bg-card border rounded-full px-3 py-1.5">
-              <span className="text-yellow-500">🪙</span>
-              <span className="font-semibold text-sm">{coinBalance}</span>
-              <span className="text-xs text-muted-foreground hidden sm:inline">Coins</span>
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          
+          {/* Subscription Status */}
+          {usage && (
+            <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Crown className={`w-4 h-4 ${usage.planType === 'premium' ? 'text-yellow-400' : 'text-gray-400'}`} />
+                  <span className="text-white font-medium capitalize">{usage.planType} Plan</span>
+                </div>
+                {usage.planType === 'free' && (
+                  <button className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-full hover:from-yellow-600 hover:to-orange-600 transition-all">
+                    Upgrade
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="bg-white/10 rounded-lg p-2 text-center">
+                  <p className="text-sm font-bold text-white">{usage.current}</p>
+                  <p className="text-xs text-gray-400">Used</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-2 text-center">
+                  <p className="text-sm font-bold text-white">{usage.remaining}</p>
+                  <p className="text-xs text-gray-400">Left</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-2 text-center">
+                  <p className="text-sm font-bold text-white">{usage.limit}</p>
+                  <p className="text-xs text-gray-400">Total</p>
+                </div>
+              </div>
+              
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min((usage.current / usage.limit) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Resets {new Date(usage.resetDate).toLocaleDateString()}
+              </p>
+            </div>
+          )}
+
+          {/* Audio Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Volume2 className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">Audio Settings</h3>
+            </div>
+
+            {/* Volume Control */}
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-300">Default Volume</span>
+                <span className="text-sm font-bold text-white bg-white/10 px-2 py-1 rounded">
+                  {settings.volume}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.volume}
+                onChange={(e) => handleSettingChange('volume', parseInt(e.target.value))}
+                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${settings.volume}%, #4b5563 ${settings.volume}%, #4b5563 100%)`
+                }}
+              />
+            </div>
+
+            {/* Audio Quality */}
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Headphones className="w-4 h-4 text-green-400" />
+                  <div>
+                    <p className="text-sm text-white font-medium">High Quality Audio</p>
+                    <p className="text-xs text-gray-400">Stream in 320kbps quality</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.highQuality}
+                    onChange={(e) => handleSettingChange('highQuality', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Autoplay */}
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Monitor className="w-4 h-4 text-blue-400" />
+                  <div>
+                    <p className="text-sm text-white font-medium">Autoplay</p>
+                    <p className="text-xs text-gray-400">Continue playing similar tracks</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoplay}
+                    onChange={(e) => handleSettingChange('autoplay', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Bell className="w-4 h-4 text-yellow-400" />
+              <h3 className="text-sm font-semibold text-white">Notifications</h3>
+            </div>
+
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Smartphone className="w-4 h-4 text-green-400" />
+                  <div>
+                    <p className="text-sm text-white font-medium">Push Notifications</p>
+                    <p className="text-xs text-gray-400">Updates and new features</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications}
+                    onChange={(e) => handleSettingChange('notifications', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Appearance */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Palette className="w-4 h-4 text-pink-400" />
+              <h3 className="text-sm font-semibold text-white">Appearance</h3>
+            </div>
+
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white font-medium">Show Lyrics</p>
+                  <p className="text-xs text-gray-400">Display lyrics during playback</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.showLyrics}
+                    onChange={(e) => handleSettingChange('showLyrics', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Downloads */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Download className="w-4 h-4 text-green-400" />
+              <h3 className="text-sm font-semibold text-white">Downloads</h3>
+            </div>
+
+            <div className="bg-white/5 rounded-lg p-3">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Download Quality
+              </label>
+              <select
+                value={settings.downloadQuality}
+                onChange={(e) => handleSettingChange('downloadQuality', e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="low" className="bg-gray-800">Low (128kbps)</option>
+                <option value="medium" className="bg-gray-800">Medium (256kbps)</option>
+                <option value="high" className="bg-gray-800">High (320kbps)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Higher quality = larger file sizes</p>
+            </div>
+          </div>
+
+          {/* Privacy & Security */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Shield className="w-4 h-4 text-red-400" />
+              <h3 className="text-sm font-semibold text-white">Privacy & Security</h3>
+            </div>
+
+            <div className="space-y-2">
+              <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all">
+                <div className="flex items-center space-x-2">
+                  <Download className="w-4 h-4 text-blue-400" />
+                  <div className="text-left">
+                    <p className="text-sm text-white font-medium">Export My Data</p>
+                    <p className="text-xs text-gray-400">Download your saved music</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <button className="w-full flex items-center justify-between p-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20">
+                <div className="flex items-center space-x-2">
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <div className="text-left">
+                    <p className="text-sm text-red-400 font-medium">Delete Account</p>
+                    <p className="text-xs text-red-300/70">Permanently delete account</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Info */}
+          <div className="pt-4 border-t border-white/10 text-center">
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                <Music className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm text-white font-semibold">MuzAI</p>
+                <p className="text-xs text-gray-400">Version 1.0.0</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Built with ❤️ in Myanmar</p>
+            <div className="flex justify-center gap-3 text-xs">
+              <button className="text-purple-400 hover:text-purple-300">Privacy</button>
+              <button className="text-purple-400 hover:text-purple-300">Terms</button>
+              <button className="text-purple-400 hover:text-purple-300">Support</button>
             </div>
           </div>
         </div>
       </div>
-
-      <div className="container mx-auto p-4 pb-20">
-        {/* Mobile-First Title Section */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
-            AI Music Generator
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Create amazing music with AI - from descriptions, lyrics, or images
-          </p>
-        </div>
-
-        {/* Main Content Card */}
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg sm:text-xl">Create Your Music</CardTitle>
-            <CardDescription className="text-sm">
-              Choose your generation mode and let AI create your perfect soundtrack
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {/* Mobile-First Mode Selection */}
-            <Tabs value={mode} onValueChange={(value) => setMode(value as any)} className="w-full">
-              {/* Mobile Tab Layout */}
-              <div className="space-y-2 sm:space-y-0">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto p-1 gap-1 sm:gap-0">
-                  <TabsTrigger value="description" className="w-full p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline">Description</span>
-                      <span className="sm:hidden">Desc</span>
-                      <span className="text-xs">({getCoinCost()} 🪙)</span>
-                    </div>
-                  </TabsTrigger>
-                  <TabsTrigger value="custom" className="w-full p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Music className="w-4 h-4" />
-                      <span className="hidden sm:inline">Custom Lyrics</span>
-                      <span className="sm:hidden">Lyrics</span>
-                      <span className="text-xs">(30 🪙)</span>
-                    </div>
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="w-full p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Image className="w-4 h-4" />
-                      <span className="hidden sm:inline">Image to Music</span>
-                      <span className="sm:hidden">Image</span>
-                      <span className="text-xs">(50 🪙)</span>
-                    </div>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              {/* Description Mode - Mobile Optimized */}
-              <TabsContent value="description" className="space-y-4 mt-6">
-                <div>
-                  <Label htmlFor="prompt" className="text-sm font-medium">Music Description</Label>
-                  <Textarea
-                    id="prompt"
-                    placeholder="Describe the music you want... e.g., 'A calming piano piece with soft melodies for relaxation'"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="mt-1 min-h-[100px] text-sm"
-                    rows={4}
-                  />
-                </div>
-              </TabsContent>
-
-              {/* Custom Lyrics Mode - Mobile Optimized */}
-              <TabsContent value="custom" className="space-y-4 mt-6">
-                <div>
-                  <Label htmlFor="lyrics" className="text-sm font-medium">Custom Lyrics</Label>
-                  <Textarea
-                    id="lyrics"
-                    placeholder="Enter your custom lyrics here..."
-                    value={customLyrics}
-                    onChange={(e) => setCustomLyrics(e.target.value)}
-                    className="mt-1 min-h-[120px] text-sm"
-                    rows={6}
-                  />
-                </div>
-
-                {/* Mobile-First Grid for Style/Title */}
-                <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
-                  <div>
-                    <Label htmlFor="style" className="text-sm font-medium">Music Style</Label>
-                    <Input
-                      id="style"
-                      placeholder="e.g., Pop, Rock, Jazz, Classical"
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      className="mt-1 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="title" className="text-sm font-medium">Song Title</Label>
-                    <Input
-                      id="title"
-                      placeholder="Enter song title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="mt-1 text-sm"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Image Mode - Mobile Optimized */}
-              <TabsContent value="image" className="space-y-4 mt-6">
-                <div>
-                  <Label htmlFor="image" className="text-sm font-medium">Upload Image</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-6 text-center mt-1">
-                    {imagePreview ? (
-                      <div className="space-y-4">
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="max-w-full max-h-48 mx-auto rounded-lg"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setImageFile(null);
-                            setImagePreview(null);
-                          }}
-                        >
-                          Remove Image
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <Upload className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 text-muted-foreground" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="image-upload"
-                        />
-                        <label htmlFor="image-upload">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                          >
-                            <span>Choose Image</span>
-                          </Button>
-                        </label>
-                        <p className="text-muted-foreground text-xs sm:text-sm mt-2">
-                          AI will analyze your image and create lyrics + music
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Optional fields for image mode */}
-                <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
-                  <div>
-                    <Label htmlFor="image-style" className="text-sm font-medium">Music Style (Optional)</Label>
-                    <Input
-                      id="image-style"
-                      placeholder="e.g., Folk, Electronic, Ambient"
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      className="mt-1 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="image-title" className="text-sm font-medium">Song Title (Optional)</Label>
-                    <Input
-                      id="image-title"
-                      placeholder="Leave empty for AI to decide"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="mt-1 text-sm"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            {/* Advanced Options - Mobile Optimized */}
-            {mode !== "image" && (
-              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                <h3 className="font-medium text-sm">Advanced Options</h3>
-                <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 sm:items-end">
-                  <div>
-                    <Label htmlFor="model" className="text-sm font-medium">AI Model</Label>
-                    <Select value={model} onValueChange={setModel}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="V3_5">V3.5 - Better structure</SelectItem>
-                        <SelectItem value="V4">V4 - Improved vocals</SelectItem>
-                        <SelectItem value="V4_5">V4.5 - Smart prompts</SelectItem>
-                        <SelectItem value="V4_5PLUS">V4.5+ - Richer sound</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-background rounded border">
-                    <Label htmlFor="instrumental" className="text-sm font-medium">Instrumental Only</Label>
-                    <Switch
-                      id="instrumental"
-                      checked={instrumental}
-                      onCheckedChange={setInstrumental}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Generate Button - Mobile Optimized */}
-            <Button
-              onClick={handleGenerate}
-              disabled={isLoading || !validateForm() || coinBalance < getCoinCost()}
-              className="w-full h-12 text-sm sm:text-base"
-              size="lg"
-            >
-              {isLoading ? "Generating..." : `Generate Music (${getCoinCost()} 🪙)`}
-            </Button>
-
-            {/* Status Display - Mobile Optimized */}
-            {taskStatus && (
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Generation Status</span>
-                  <Badge variant={taskStatus.status === "SUCCESS" ? "default" : "secondary"} className="text-xs">
-                    {taskStatus.status}
-                  </Badge>
-                </div>
-                {taskStatus.status === "PENDING" && (
-                  <div className="space-y-2">
-                    <Progress value={undefined} className="w-full h-2" />
-                    <p className="text-muted-foreground text-xs sm:text-sm">{getStatusMessage()}</p>
-                  </div>
-                )}
-                {getStatusMessage() && taskStatus.status !== "PENDING" && (
-                  <p className="text-muted-foreground text-xs sm:text-sm">{getStatusMessage()}</p>
-                )}
-              </div>
-            )}
-
-            {/* Generated Lyrics Display - Mobile Optimized */}
-            {generatedLyrics && (
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <h3 className="font-medium text-sm">Generated Lyrics from Image</h3>
-                <pre className="text-muted-foreground text-xs sm:text-sm whitespace-pre-wrap overflow-auto max-h-40">
-                  {generatedLyrics}
-                </pre>
-              </div>
-            )}
-
-            {/* Generated Tracks - Mobile Optimized */}
-            {generatedTracks.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm sm:text-base">Generated Music</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetForm}
-                  >
-                    Create New
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  {generatedTracks.map((track, index) => (
-                    <Card key={track.id}>
-                      <CardContent className="p-4">
-                        {/* Mobile-First Track Layout */}
-                        <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:space-x-4">
-                          {track.imageUrl && (
-                            <img
-                              src={track.imageUrl}
-                              alt={track.title}
-                              className="w-full sm:w-16 h-32 sm:h-16 rounded-lg object-cover"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <h4 className="font-medium text-sm sm:text-base truncate">{track.title}</h4>
-                            <p className="text-muted-foreground text-xs sm:text-sm">{track.tags}</p>
-                            <p className="text-muted-foreground text-xs">Duration: {Math.floor(track.duration)}s</p>
-                          </div>
-
-                          {/* Mobile Controls */}
-                          <div className="flex items-center justify-center space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => togglePlayPause(track)}
-                              className="flex-1 sm:flex-none"
-                            >
-                              {currentlyPlaying === track.id ? (
-                                <>
-                                  <Pause className="w-4 h-4 sm:mr-0 mr-2" />
-                                  <span className="sm:hidden">Pause</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="w-4 h-4 sm:mr-0 mr-2" />
-                                  <span className="sm:hidden">Play</span>
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => downloadTrack(track)}
-                              className="flex-1 sm:flex-none"
-                            >
-                              <Download className="w-4 h-4 sm:mr-0 mr-2" />
-                              <span className="sm:hidden">Download</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
