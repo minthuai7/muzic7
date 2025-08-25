@@ -79,7 +79,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       
       {/* Slide Panel */}
       <div 
-        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative flex flex-col h-full ${
+        className={`ml-auto h-full w-full max-w-md bg-gray-900/98 backdrop-blur-xl border-l border-white/20 shadow-2xl transform transition-transform duration-300 ease-out relative ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
         style={{ zIndex: 999999 }}
@@ -196,7 +196,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onChange={(e) => handleSettingChange('highQuality', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute af[...]
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onChange={(e) => handleSettingChange('autoplay', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute af[...]
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onChange={(e) => handleSettingChange('notifications', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute af[...]
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onChange={(e) => handleSettingChange('showLyrics', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute af[...]
+                  <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
             </div>
@@ -359,4 +359,3 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   );
 
   return createPortal(modalContent, document.body);
-}
